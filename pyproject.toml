@@ -1,0 +1,23 @@
+[project]
+name = "panchyat-dashboard"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Prashant",email = "tiwariprashant704@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "flask (>=3.1.2,<4.0.0)",
+    "flask-pymongo (>=3.0.1,<4.0.0)",
+    "flask-login (>=0.6.3,<0.7.0)",
+    "python-dotenv (>=1.1.1,<2.0.0)",
+    "werkzeug (>=3.1.3,<4.0.0)",
+    "pandas (>=2.3.2,<3.0.0)",
+    "openpyxl (>=3.1.5,<4.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

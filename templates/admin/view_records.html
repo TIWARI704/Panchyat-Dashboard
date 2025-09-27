@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Records - Panchayat Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .sidebar .nav-link {
+            color: white;
+            padding: 15px 20px;
+            border-radius: 0;
+            transition: all 0.3s;
+            display: block;
+            text-decoration: none;
+        }
+        .sidebar .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .sidebar .nav-link.active {
+            background-color: rgba(255,255,255,0.2);
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .table {
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 px-0">
+                <div class="sidebar">
+                    <div class="p-3">
+                        <h4 class="text-white">Admin Panel</h4>
+                        <small class="text-white-50">Welcome, {{ session.username }}!</small>
+                    </div>
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.add_record') }}">
+                            <i class="fas fa-plus me-2"></i> Add Record
+                        </a>
+                        <a class="nav-link active" href="{{ url_for('admin.view_records') }}">
+                            <i class="fas fa-table me-2"></i> View Records
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.export_excel') }}">
+                            <i class="fas fa-download me-2"></i> Export Excel
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.manage_users') }}">
+                            <i class="fas fa-users me-2"></i> Manage Users
+                        </a>
+                        <hr class="text-white-50">
+                        <a class="nav-link" href="{{ url_for('login.logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                        </a>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <div class="main-content">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2>All Records</h2>
+                        <a href="{{ url_for('admin.add_record') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add New Record
+                        </a>
+                    </div>
+
+                    <!-- Flash Messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <!-- Search and Filter -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <form method="GET">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" name="search" 
+                                               placeholder="Search by panchayat name, village, beneficiary, or registration number..." 
+                                               value="{{ search }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-primary me-2">
+                                            <i class="fas fa-search me-2"></i>Search
+                                        </button>
+                                        <a href="{{ url_for('admin.view_records') }}" class="btn btn-secondary">
+                                            <i class="fas fa-times me-2"></i>Clear
+                                        </a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Records Table -->
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Records ({{ total_records }} total)</h5>
+                            <small class="text-muted">Page {{ page }} of {{ total_pages }}</small>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if records %}
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Registration No.</th>
+                                            <th>Panchayat</th>
+                                            <th>Village</th>
+                                            <th>Beneficiary</th>
+                                            <th>Category</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for record in records %}
+                                        <tr>
+                                            <td>{{ record.registration_number or 'N/A' }}</td>
+                                            <td>{{ record.panchayat_name or 'N/A' }}</td>
+                                            <td>{{ record.village_name or 'N/A' }}</td>
+                                            <td>{{ record.beneficiary_name or 'N/A' }}</td>
+                                            <td>
+                                                <span class="badge bg-info">{{ record.category or 'N/A' }}</span>
+                                            </td>
+                                            <td>₹{{ "{:,.0f}".format(record.amount_released or 0) }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if record.house_status == 'Complete' else 'warning' }}">
+                                                    {{ record.house_status or 'N/A' }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if can_edit %}
+                                                <a href="{{ url_for('admin.edit_record', record_id=record._id) }}" 
+                                                   class="btn btn-sm btn-warning me-1">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{{ url_for('admin.delete_record', record_id=record._id) }}" 
+                                                   class="btn btn-sm btn-danger"
+                                                   onclick="return confirm('Are you sure you want to delete this record?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                                <h5>No Records Found</h5>
+                                <p class="text-muted">{% if search %}No records match your search criteria.{% else %}No records have been added yet.{% endif %}</p>
+                                <a href="{{ url_for('admin.add_record') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Add First Record
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Pagination -->
+                        {% if total_pages > 1 %}
+                        <div class="card-footer">
+                            <nav>
+                                <ul class="pagination justify-content-center mb-0">
+                                    {% if page > 1 %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('admin.view_records', page=page-1, search=search) }}">Previous</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for p in range(1, total_pages + 1) %}
+                                        {% if p == page %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ p }}</span>
+                                            </li>
+                                        {% elif p <= 3 or p > total_pages - 3 or (p >= page - 2 and p <= page + 2) %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('admin.view_records', page=p, search=search) }}">{{ p }}</a>
+                                            </li>
+                                        {% elif p == 4 or p == total_pages - 3 %}
+                                            <li class="page-item disabled">
+                                                <span class="page-link">...</span>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page < total_pages %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('admin.view_records', page=page+1, search=search) }}">Next</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function viewRecord(recordId) {
+            alert('Record details view will be implemented soon! Record ID: ' + recordId);
+        }
+    </script>
+</body>
+</html>

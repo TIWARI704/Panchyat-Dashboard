@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Panchayat Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="p-3 text-center">
+            <h4 class="text-white mb-1">
+                <i class="fas fa-chart-line me-2"></i>
+                Panchayat Analytics
+            </h4>
+            <small class="text-white-50">Welcome, {{ session.username }}!</small>
+        </div>
+        <nav class="nav flex-column mt-3">
+            <a class="nav-link active" href="{{ url_for('admin.dashboard') }}">
+                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.add_record') }}">
+                <i class="fas fa-plus me-2"></i> Add Record
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.view_records') }}">
+                <i class="fas fa-table me-2"></i> View Records
+            </a>
+            {% if session.is_superadmin %}
+            <a class="nav-link" href="{{ url_for('admin.manage_users') }}">
+                <i class="fas fa-users me-2"></i> Manage Users
+            </a>
+            {% endif %}
+            <a class="nav-link" href="{{ url_for('admin.export_excel') }}">
+                <i class="fas fa-download me-2"></i> Export Data
+            </a>
+            <hr class="text-white-50 mx-3">
+            <a class="nav-link" href="{{ url_for('login.logout') }}">
+                <i class="fas fa-sign-out-alt me-2"></i> Logout
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content-wrapper">
+        <div class="main-content">
+            <!-- Header -->
+            <div class="dashboard-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-1" style="color: #2c3e50; font-weight: 700;">Dashboard</h2>
+                        <p class="text-muted mb-0">Real-time analytics and insights</p>
+                    </div>
+                    <div>
+                        <span class="badge bg-primary fs-6 px-3 py-2" id="current-date"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card users">
+                        <div class="icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="number">{{ users_count or 0 }}</div>
+                        <div class="label">Total Users</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card records">
+                        <div class="icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="number">{{ records_count or 0 }}</div>
+                        <div class="label">Total Records</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card amount">
+                        <div class="icon">
+                            <i class="fas fa-rupee-sign"></i>
+                        </div>
+                        <div class="number">₹{{ "{:,.0f}".format(total_amount or 0) }}</div>
+                        <div class="label">Total Amount</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="stats-card panchayats">
+                        <div class="icon">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="number">{{ panchayat_stats|length or 0 }}</div>
+                        <div class="label">Active Panchayats</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="row mb-4">
+                <!-- Category Distribution Pie Chart -->
+                <div class="col-lg-6 mb-4">
+                    <div class="chart-card">
+                        <div class="chart-title">
+                            <i class="fas fa-chart-pie me-2" style="color: #667eea;"></i>
+                            Records by Category
+                        </div>
+                        <canvas id="categoryChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+
+                <!-- Panchayat Distribution Bar Chart -->
+                <div class="col-lg-6 mb-4">
+                    <div class="chart-card">
+                        <div class="chart-title">
+                            <i class="fas fa-chart-bar me-2" style="color: #4facfe;"></i>
+                            Top 5 Panchayats
+                        </div>
+                        <canvas id="panchayatChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- House Status Chart and Amount Distribution -->
+            <div class="row mb-4">
+                <!-- House Status Doughnut Chart -->
+                <div class="col-lg-6 mb-4">
+                    <div class="chart-card">
+                        <div class="chart-title">
+                            <i class="fas fa-home me-2" style="color: #43e97b;"></i>
+                            House Status Distribution
+                        </div>
+                        <canvas id="statusChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+
+                <!-- Monthly Trends Line Chart -->
+                <div class="col-lg-6 mb-4">
+                    <div class="chart-card">
+                        <div class="chart-title">
+                            <i class="fas fa-chart-line me-2" style="color: #f093fb;"></i>
+                            Monthly Registration Trends
+                        </div>
+                        <canvas id="trendsChart" width="400" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="quick-actions">
+                        <h5 class="chart-title">Quick Actions</h5>
+                        <div class="row">
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <a href="{{ url_for('admin.add_record') }}" class="action-btn">
+                                    <i class="fas fa-plus me-2"></i>Add Record
+                                </a>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <a href="{{ url_for('admin.view_records') }}" class="action-btn info">
+                                    <i class="fas fa-eye me-2"></i>View Records
+                                </a>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <a href="{{ url_for('admin.export_excel') }}" class="action-btn success">
+                                    <i class="fas fa-download me-2"></i>Export Excel
+                                </a>
+                            </div>
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <button class="action-btn warning w-100" onclick="generateReport()">
+                                    <i class="fas fa-chart-bar me-2"></i>Generate Report
+                                </button>
+                            </div>
+                            {% if session.is_superadmin %}
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <a href="{{ url_for('admin.manage_users') }}" class="action-btn purple">
+                                    <i class="fas fa-users-cog me-2"></i>Manage Users
+                                </a>
+                            </div>
+                            {% endif %}
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
+                                <button class="action-btn" onclick="refreshDashboard()">
+                                    <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Update current time and date
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            };
+            const dateElement = document.getElementById('current-date');
+            if (dateElement) {
+                dateElement.textContent = now.toLocaleDateString('en-US', options);
+            }
+        }
+        
+        // Initialize datetime and update every minute
+        updateDateTime();
+        setInterval(updateDateTime, 60000);
+
+        // Chart Colors
+        const chartColors = {
+            primary: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'],
+            gradients: [
+                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                'linear-gradient(135deg, #a8caba 0%, #5d4e75 100%)',
+            ]
+        };
+
+        // Category Distribution Pie Chart
+        const categoryData = {{ category_stats | tojson }};
+        if (categoryData && categoryData.length > 0) {
+            const categoryChart = new Chart(document.getElementById('categoryChart'), {
+                type: 'pie',
+                data: {
+                    labels: categoryData.map(item => item._id || 'Uncategorized'),
+                    datasets: [{
+                        data: categoryData.map(item => item.count),
+                        backgroundColor: chartColors.primary,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Panchayat Distribution Bar Chart
+        const panchayatData = {{ panchayat_stats[:5] | tojson }};
+        if (panchayatData && panchayatData.length > 0) {
+            const panchayatChart = new Chart(document.getElementById('panchayatChart'), {
+                type: 'bar',
+                data: {
+                    labels: panchayatData.map(item => item._id || 'Unknown'),
+                    datasets: [{
+                        label: 'Records Count',
+                        data: panchayatData.map(item => item.count),
+                        backgroundColor: chartColors.primary[0],
+                        borderColor: chartColors.primary[1],
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // House Status Doughnut Chart (Sample data - you'll need to pass this from backend)
+        const statusChart = new Chart(document.getElementById('statusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Complete', 'Under Construction', 'Incomplete'],
+                datasets: [{
+                    data: [45, 30, 25], // Replace with actual data from backend
+                    backgroundColor: ['#43e97b', '#ffecd2', '#f093fb'],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+
+        // Monthly Trends Line Chart (Sample data - you'll need to pass this from backend)
+        const trendsChart = new Chart(document.getElementById('trendsChart'), {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                datasets: [{
+                    label: 'New Records',
+                    data: [12, 19, 15, 25, 22, 30], // Replace with actual monthly data
+                    borderColor: chartColors.primary[2],
+                    backgroundColor: chartColors.primary[2] + '20',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        function generateReport() {
+            alert('Advanced report generation feature will be implemented soon!');
+        }
+
+        function refreshDashboard() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
