@@ -30,9 +30,19 @@ class User:
         }
 
     @staticmethod
-    def create_user(mongo, username, password, email=None, role='user', is_admin=False, is_superadmin=False):
+    def create_user(mongo, user_data):
         """Create a new user in the database"""
         try:
+            # Extract data from dictionary
+            username = user_data.get('username')
+            password = user_data.get('password')
+            email = user_data.get('email')
+            role = user_data.get('role', 'user')
+            is_admin = user_data.get('is_admin', role in ['admin', 'superadmin'])
+            is_superadmin = user_data.get('is_superadmin', role == 'superadmin')
+            
+            print(f"Model: Creating user {username} with role {role}")
+            
             # Check if user already exists
             existing_user = mongo.db.users.find_one({'username': username})
             if existing_user:
@@ -46,7 +56,15 @@ class User:
             
             # Create new user
             user = User(username, password, email, role, is_admin, is_superadmin)
-            result = mongo.db.users.insert_one(user.to_dict())
+            user_dict = user.to_dict()
+            
+            # Add additional fields from user_data
+            if user_data.get('full_name'):
+                user_dict['full_name'] = user_data['full_name']
+            if user_data.get('is_active') is not None:
+                user_dict['is_active'] = user_data['is_active']
+            
+            result = mongo.db.users.insert_one(user_dict)
             
             if result.inserted_id:
                 return {'success': True, 'message': 'User created successfully', 'user_id': str(result.inserted_id)}

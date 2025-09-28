@@ -6,7 +6,7 @@
     <title>Admin Dashboard - Panchayat Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
@@ -48,18 +48,6 @@
     <!-- Main Content -->
     <div class="main-content-wrapper">
         <div class="main-content">
-            <!-- Header -->
-            <div class="dashboard-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="mb-1" style="color: #2c3e50; font-weight: 700;">Dashboard</h2>
-                        <p class="text-muted mb-0">Real-time analytics and insights</p>
-                    </div>
-                    <div>
-                        <span class="badge bg-primary fs-6 px-3 py-2" id="current-date"></span>
-                    </div>
-                </div>
-            </div>
 
             <!-- Flash Messages -->
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -73,96 +61,527 @@
                 {% endif %}
             {% endwith %}
 
-            <!-- Statistics Cards -->
-            <div class="row mb-4">
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="stats-card users">
-                        <div class="icon">
-                            <i class="fas fa-users"></i>
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs" id="schemeTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">
+                        Mukhyamantri majhi ladki bahin
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                        New Portal Data Mukhyamantri majhi ladki bahin
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="inreview-tab" data-bs-toggle="tab" data-bs-target="#inreview" type="button" role="tab">
+                        Approved
+                    </button>
+                </li>
+                <li class="nav-item">
+                <button class="nav-link" id="disapproved-tab" data-bs-toggle="tab" data-bs-target="#disapproved" type="button" role="tab">
+                    Pending
+                </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">
+                        In Review
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="copy-disapproved-tab" data-bs-toggle="tab" data-bs-target="#copy-disapproved" type="button" role="tab">
+                        Disapproved & Rejected
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="copy-rejected-tab" data-bs-toggle="tab" data-bs-target="#copy-rejected" type="button" role="tab">
+                        Copy of Disapproved & Rejected
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content mt-4" id="schemeTabContent">
+    
+                <!-- Approved Records Tab -->
+                <div class="tab-pane fade show active" id="approved" role="tabpanel" aria-labelledby="approved-tab">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="text-success mb-0">
+                                    <i class="fas fa-check-circle me-2"></i>Approved Records Dashboard
+                                </h4>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-success btn-sm" onclick="exportApprovedData()">
+                                        <i class="fas fa-download me-1"></i>Export
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm" onclick="refreshApprovedData()">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="number">{{ users_count or 0 }}</div>
-                        <div class="label">Total Users</div>
+                    </div>
+
+                    <!-- Key Metrics Row -->
+                    <div class="row mb-4">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card success">
+                                <div class="metric-icon">
+                                    <i class="fas fa-check-double"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number" id="approvedCount">{{ approved_status.count or 0 }}</h3>
+                                    <p class="metric-label">Total Approved</p>
+                                    <small class="metric-change positive">+{{ approved_status.recent_count or 0 }} this month</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card success-light">
+                                <div class="metric-icon">
+                                    <i class="fas fa-rupee-sign"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">₹{{ "{:,.0f}".format(approved_stats.total_amount or 0) }}</h3>
+                                    <p class="metric-label">Amount Disbursed</p>
+                                    <small class="metric-change positive">{{ approved_stats.avg_amount or 0 }}% avg per case</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card info">
+                                <div class="metric-icon">
+                                    <i class="fas fa-calendar-check"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number" id="approvedThisMonth">{{ approved_stats.this_month or 0 }}</h3>
+                                    <p class="metric-label">This Month</p>
+                                    <small class="metric-change">{{ approved_stats.completion_rate or 0 }}% completion rate</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card warning">
+                                <div class="metric-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ approved_stats.avg_processing_days or 0 }}</h3>
+                                    <p class="metric-label">Avg Processing Days</p>
+                                    <small class="metric-change">{{ approved_stats.fastest_approval or 0 }} days fastest</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="row mb-4">
+                        <div class="col-lg-8 mb-4">
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h5><i class="fas fa-chart-line me-2"></i>Approval Trends (Last 12 Months)</h5>
+                                    <div class="chart-controls">
+                                        <select class="form-select form-select-sm" id="approvedPeriodSelect">
+                                            <option value="12">Last 12 Months</option>
+                                            <option value="6">Last 6 Months</option>
+                                            <option value="3">Last 3 Months</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <canvas id="approvedTrendsChart" height="300"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 mb-4">
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h5><i class="fas fa-chart-pie me-2"></i>Approved by Category</h5>
+                                </div>
+                                <canvas id="approvedCategoryChart" height="300"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Panchayat-wise Distribution -->
+                    <div class="row mb-4">
+                        <div class="col-lg-6 mb-4">
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h5><i class="fas fa-chart-bar me-2"></i>Top Performing Panchayats</h5>
+                                </div>
+                                <canvas id="approvedPanchayatChart" height="300"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 mb-4">
+                            <div class="data-table-container">
+                                <div class="table-header">
+                                    <h5><i class="fas fa-list me-2"></i>Recent Approved Records</h5>
+                                    <a href="#" class="btn btn-sm btn-outline-success">View All</a>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Beneficiary</th>
+                                                <th>Panchayat</th>
+                                                <th>Amount</th>
+                                                <th>Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recentApprovedTable">
+                                            <!-- Dynamic content will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="stats-card records">
-                        <div class="icon">
-                            <i class="fas fa-file-alt"></i>
+
+                <!-- Pending Records Tab -->
+                <div class="tab-pane fade" id="pending" role="tabpanel" aria-labelledby="pending-tab">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="text-warning mb-0">
+                                    <i class="fas fa-clock me-2"></i>Pending Records Dashboard
+                                </h4>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-warning btn-sm" onclick="bulkApprove()">
+                                        <i class="fas fa-check me-1"></i>Bulk Approve
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm" onclick="refreshPendingData()">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="number">{{ records_count or 0 }}</div>
-                        <div class="label">Total Records</div>
+                    </div>
+
+                    <!-- Key Metrics Row -->
+                    <div class="row mb-4">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card warning">
+                                <div class="metric-icon">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number" id="pendingCount">{{ pending_stats.count or 0 }}</h3>
+                                    <p class="metric-label">Total Pending</p>
+                                    <small class="metric-change negative">+{{ pending_stats.recent_count or 0 }} new today</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card danger">
+                                <div class="metric-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ pending_stats.overdue_count or 0 }}</h3>
+                                    <p class="metric-label">Overdue (>30 days)</p>
+                                    <small class="metric-change negative">Critical attention needed</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card info">
+                                <div class="metric-icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ pending_stats.avg_waiting_days or 0 }}</h3>
+                                    <p class="metric-label">Avg Waiting Days</p>
+                                    <small class="metric-change">{{ pending_stats.longest_waiting or 0 }} days longest</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card secondary">
+                                <div class="metric-icon">
+                                    <i class="fas fa-rupee-sign"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">₹{{ "{:,.0f}".format(pending_stats.total_amount or 0) }}</h3>
+                                    <p class="metric-label">Amount Pending</p>
+                                    <small class="metric-change">{{ pending_stats.avg_amount or 0 }}% of total budget</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Priority Actions -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert-container">
+                                <div class="alert alert-warning d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                                    <div class="flex-grow-1">
+                                        <h6 class="alert-heading mb-1">Action Required</h6>
+                                        <p class="mb-2">{{ pending_stats.overdue_count or 0 }} records are overdue for review. Consider prioritizing these cases.</p>
+                                        <button class="btn btn-warning btn-sm me-2">Review Overdue Cases</button>
+                                        <button class="btn btn-outline-warning btn-sm">Generate Report</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts and Data -->
+                    <div class="row mb-4">
+                        <div class="col-lg-8 mb-4">
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h5><i class="fas fa-chart-area me-2"></i>Pending Records by Age</h5>
+                                </div>
+                                <canvas id="pendingAgeChart" height="300"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 mb-4">
+                            <div class="priority-list-container">
+                                <div class="table-header">
+                                    <h5><i class="fas fa-star me-2"></i>High Priority Cases</h5>
+                                </div>
+                                <div class="priority-list" id="highPriorityList">
+                                    <!-- Dynamic high priority cases -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="stats-card amount">
-                        <div class="icon">
-                            <i class="fas fa-rupee-sign"></i>
+
+                <!-- In Review Tab -->
+                <div class="tab-pane fade" id="inreview" role="tabpanel" aria-labelledby="inreview-tab">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="text-info mb-0">
+                                    <i class="fas fa-search me-2"></i>Records Under Review
+                                </h4>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-info btn-sm" onclick="assignReviewer()">
+                                        <i class="fas fa-user-plus me-1"></i>Assign Reviewer
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" onclick="refreshInReviewData()">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="number">₹{{ "{:,.0f}".format(total_amount or 0) }}</div>
-                        <div class="label">Total Amount</div>
+                    </div>
+
+                    <!-- Key Metrics -->
+                    <div class="row mb-4">
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="metric-card info">
+                                <div class="metric-icon">
+                                    <i class="fas fa-search"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ inreview_stats.count or 0 }}</h3>
+                                    <p class="metric-label">Under Review</p>
+                                    <small class="metric-change">{{ inreview_stats.today_count or 0 }} started today</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="metric-card primary">
+                                <div class="metric-icon">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ inreview_stats.reviewers or 0 }}</h3>
+                                    <p class="metric-label">Active Reviewers</p>
+                                    <small class="metric-change">{{ inreview_stats.avg_per_reviewer or 0 }} cases per reviewer</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 col-md-6 mb-3">
+                            <div class="metric-card success">
+                                <div class="metric-icon">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ inreview_stats.avg_review_days or 0 }}</h3>
+                                    <p class="metric-label">Avg Review Time</p>
+                                    <small class="metric-change positive">{{ inreview_stats.efficiency or 0 }}% faster than target</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Review Progress -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="progress-container">
+                                <h5><i class="fas fa-tasks me-2"></i>Review Progress</h5>
+                                <div class="review-stages">
+                                    <div class="stage completed">
+                                        <div class="stage-icon"><i class="fas fa-file-alt"></i></div>
+                                        <div class="stage-info">
+                                            <h6>Document Verification</h6>
+                                            <p>{{ inreview_stats.doc_verified or 0 }} completed</p>
+                                        </div>
+                                    </div>
+                                    <div class="stage active">
+                                        <div class="stage-icon"><i class="fas fa-search"></i></div>
+                                        <div class="stage-info">
+                                            <h6>Field Verification</h6>
+                                            <p>{{ inreview_stats.field_pending or 0 }} in progress</p>
+                                        </div>
+                                    </div>
+                                    <div class="stage pending">
+                                        <div class="stage-icon"><i class="fas fa-check"></i></div>
+                                        <div class="stage-info">
+                                            <h6>Final Approval</h6>
+                                            <p>{{ inreview_stats.final_pending or 0 }} pending</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="stats-card panchayats">
-                        <div class="icon">
-                            <i class="fas fa-building"></i>
+
+                <!-- Disapproved Tab -->
+                <div class="tab-pane fade" id="disapproved" role="tabpanel" aria-labelledby="disapproved-tab">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="text-danger mb-0">
+                                    <i class="fas fa-times-circle me-2"></i>Disapproved Records
+                                </h4>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-warning btn-sm" onclick="allowResubmission()">
+                                        <i class="fas fa-redo me-1"></i>Allow Resubmission
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="refreshDisapprovedData()">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="number">{{ panchayat_stats|length or 0 }}</div>
-                        <div class="label">Active Panchayats</div>
+                    </div>
+
+                    <!-- Key Metrics -->
+                    <div class="row mb-4">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card danger">
+                                <div class="metric-icon">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ disapproved_stats.count or 0 }}</h3>
+                                    <p class="metric-label">Total Disapproved</p>
+                                    <small class="metric-change">{{ disapproved_stats.this_month or 0 }} this month</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card warning">
+                                <div class="metric-icon">
+                                    <i class="fas fa-redo-alt"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ disapproved_stats.resubmitted or 0 }}</h3>
+                                    <p class="metric-label">Resubmitted</p>
+                                    <small class="metric-change positive">{{ disapproved_stats.resubmit_rate or 0 }}% resubmit rate</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card info">
+                                <div class="metric-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ disapproved_stats.top_reason_count or 0 }}</h3>
+                                    <p class="metric-label">{{ disapproved_stats.top_reason or 'Main Issue' }}</p>
+                                    <small class="metric-change">Most common reason</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="metric-card secondary">
+                                <div class="metric-icon">
+                                    <i class="fas fa-percentage"></i>
+                                </div>
+                                <div class="metric-content">
+                                    <h3 class="metric-number">{{ disapproved_stats.disapproval_rate or 0 }}%</h3>
+                                    <p class="metric-label">Disapproval Rate</p>
+                                    <small class="metric-change {% if disapproved_stats.trend == 'down' %}positive{% else %}negative{% endif %}">
+                                        {{ disapproved_stats.trend_text or 'vs last month' }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reasons Analysis -->
+                    <div class="row mb-4">
+                        <div class="col-lg-6 mb-4">
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h5><i class="fas fa-chart-pie me-2"></i>Disapproval Reasons</h5>
+                                </div>
+                                <canvas id="disapprovalReasonsChart" height="300"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 mb-4">
+                            <div class="reasons-list-container">
+                                <div class="table-header">
+                                    <h5><i class="fas fa-list-ol me-2"></i>Top Disapproval Reasons</h5>
+                                </div>
+                                <div class="reasons-list" id="disapprovalReasonsList">
+                                    <!-- Dynamic reasons list -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Rejected Tab -->
+                <div class="tab-pane fade" id="rejected" role="tabpanel" aria-labelledby="rejected-tab">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="text-danger mb-0">
+                                    <i class="fas fa-ban me-2"></i>Rejected Records
+                                </h4>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-danger btn-sm" onclick="archiveRejected()">
+                                        <i class="fas fa-archive me-1"></i>Archive All
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="refreshRejectedData()">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Similar structure as disapproved but for rejected records -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Note:</strong> Rejected records cannot be resubmitted and are permanently closed.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Copy Disapproved Tab -->
+                <div class="tab-pane fade" id="copy-disapproved" role="tabpanel" aria-labelledby="copy-disapproved-tab">
+                    <!-- Archive/backup view of disapproved records -->
+                </div>
+
+                <!-- Copy Rejected Tab -->
+                <div class="tab-pane fade" id="copy-rejected" role="tabpanel" aria-labelledby="copy-rejected-tab">
+                    <!-- Archive/backup view of rejected records -->
+                </div>
+
             </div>
-
-            <!-- Charts Section -->
-            <div class="row mb-4">
-                <!-- Category Distribution Pie Chart -->
-                <div class="col-lg-6 mb-4">
-                    <div class="chart-card">
-                        <div class="chart-title">
-                            <i class="fas fa-chart-pie me-2" style="color: #667eea;"></i>
-                            Records by Category
-                        </div>
-                        <canvas id="categoryChart" width="400" height="300"></canvas>
-                    </div>
-                </div>
-
-                <!-- Panchayat Distribution Bar Chart -->
-                <div class="col-lg-6 mb-4">
-                    <div class="chart-card">
-                        <div class="chart-title">
-                            <i class="fas fa-chart-bar me-2" style="color: #4facfe;"></i>
-                            Top 5 Panchayats
-                        </div>
-                        <canvas id="panchayatChart" width="400" height="300"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- House Status Chart and Amount Distribution -->
-            <div class="row mb-4">
-                <!-- House Status Doughnut Chart -->
-                <div class="col-lg-6 mb-4">
-                    <div class="chart-card">
-                        <div class="chart-title">
-                            <i class="fas fa-home me-2" style="color: #43e97b;"></i>
-                            House Status Distribution
-                        </div>
-                        <canvas id="statusChart" width="400" height="300"></canvas>
-                    </div>
-                </div>
-
-                <!-- Monthly Trends Line Chart -->
-                <div class="col-lg-6 mb-4">
-                    <div class="chart-card">
-                        <div class="chart-title">
-                            <i class="fas fa-chart-line me-2" style="color: #f093fb;"></i>
-                            Monthly Registration Trends
-                        </div>
-                        <canvas id="trendsChart" width="400" height="300"></canvas>
-                    </div>
-                </div>
-            </div>
-
             <!-- Quick Actions -->
             <div class="row">
                 <div class="col-md-12">
@@ -205,168 +624,427 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        // Update current time and date
-        function updateDateTime() {
-            const now = new Date();
-            const options = { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric',
-                weekday: 'long'
-            };
-            const dateElement = document.getElementById('current-date');
-            if (dateElement) {
-                dateElement.textContent = now.toLocaleDateString('en-US', options);
-            }
-        }
+    // Wait for everything to load completely
+    window.addEventListener('load', function() {
+        console.log('Chart.js version:', Chart.version);
         
-        // Initialize datetime and update every minute
-        updateDateTime();
-        setInterval(updateDateTime, 60000);
+        // Initialize charts after a small delay
+        setTimeout(function() {
+            initializeChartsForTab('#approved');
+        }, 1000);
+        
+        // Tab change listeners
+        document.addEventListener('shown.bs.tab', function(event) {
+            const targetId = event.target.getAttribute('data-bs-target');
+            setTimeout(() => {
+                initializeChartsForTab(targetId);
+            }, 300);
+        });
+    });
 
-        // Chart Colors
-        const chartColors = {
-            primary: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#38f9d7'],
-            gradients: [
-                'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
-                'linear-gradient(135deg, #a8caba 0%, #5d4e75 100%)',
-            ]
-        };
+    function initializeChartsForTab(tabId) {
+        console.log('Initializing charts for tab:', tabId);
+        
+        switch(tabId) {
+            case '#approved':
+                initApprovedCharts();
+                break;
+            case '#pending':
+                initPendingCharts();
+                break;
+            case '#inreview':
+                initInReviewCharts();
+                break;
+            case '#disapproved':
+                initDisapprovedCharts();
+                break;
+            case '#rejected':
+                initRejectedCharts();
+                break;
+        }
+    }
 
-        // Category Distribution Pie Chart
-        const categoryData = {{ category_stats | tojson }};
-        if (categoryData && categoryData.length > 0) {
-            const categoryChart = new Chart(document.getElementById('categoryChart'), {
-                type: 'pie',
-                data: {
-                    labels: categoryData.map(item => item._id || 'Uncategorized'),
-                    datasets: [{
-                        data: categoryData.map(item => item.count),
-                        backgroundColor: chartColors.primary,
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true
+    // Global chart instances to manage them
+    let approvedTrendsChart = null;
+    let approvedCategoryChart = null;
+    let approvedPanchayatChart = null;
+    let pendingAgeChart = null;
+    let disapprovalReasonsChart = null;
+
+    function initApprovedCharts() {
+        console.log('Initializing approved charts');
+        
+        // Destroy existing charts if they exist
+        if (approvedTrendsChart) {
+            approvedTrendsChart.destroy();
+            approvedTrendsChart = null;
+        }
+        if (approvedCategoryChart) {
+            approvedCategoryChart.destroy();
+            approvedCategoryChart = null;
+        }
+        if (approvedPanchayatChart) {
+            approvedPanchayatChart.destroy();
+            approvedPanchayatChart = null;
+        }
+
+        // Create Approval Trends Chart
+        const trendsCtx = document.getElementById('approvedTrendsChart');
+        if (trendsCtx) {
+            try {
+                approvedTrendsChart = new Chart(trendsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'Approved Records',
+                            data: [12, 19, 15, 25, 22, 30],
+                            borderColor: 'rgb(67, 233, 123)',
+                            backgroundColor: 'rgba(67, 233, 123, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
                             }
                         }
                     }
-                }
-            });
+                });
+                console.log('Trends chart created successfully');
+            } catch (error) {
+                console.error('Error creating trends chart:', error);
+            }
         }
 
-        // Panchayat Distribution Bar Chart
-        const panchayatData = {{ panchayat_stats[:5] | tojson }};
-        if (panchayatData && panchayatData.length > 0) {
-            const panchayatChart = new Chart(document.getElementById('panchayatChart'), {
-                type: 'bar',
-                data: {
-                    labels: panchayatData.map(item => item._id || 'Unknown'),
-                    datasets: [{
-                        label: 'Records Count',
-                        data: panchayatData.map(item => item.count),
-                        backgroundColor: chartColors.primary[0],
-                        borderColor: chartColors.primary[1],
-                        borderWidth: 2,
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
+        // Create Category Distribution Chart
+        const categoryCtx = document.getElementById('approvedCategoryChart');
+        if (categoryCtx) {
+            try {
+                approvedCategoryChart = new Chart(categoryCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['SC', 'ST', 'OBC', 'General', 'EWS'],
+                        datasets: [{
+                            data: [30, 25, 20, 15, 10],
+                            backgroundColor: [
+                                '#43e97b',
+                                '#38f9d7',
+                                '#4facfe',
+                                '#667eea',
+                                '#764ba2'
+                            ],
+                            borderWidth: 0
+                        }]
                     },
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                            }
                         }
                     }
-                }
-            });
+                });
+                console.log('Category chart created successfully');
+            } catch (error) {
+                console.error('Error creating category chart:', error);
+            }
         }
 
-        // House Status Doughnut Chart (Sample data - you'll need to pass this from backend)
-        const statusChart = new Chart(document.getElementById('statusChart'), {
-            type: 'doughnut',
-            data: {
-                labels: ['Complete', 'Under Construction', 'Incomplete'],
-                datasets: [{
-                    data: [45, 30, 25], // Replace with actual data from backend
-                    backgroundColor: ['#43e97b', '#ffecd2', '#f093fb'],
-                    borderWidth: 2,
-                    borderColor: '#fff'
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true
+        // Create Top Panchayats Chart
+        const panchayatCtx = document.getElementById('approvedPanchayatChart');
+        if (panchayatCtx) {
+            try {
+                approvedPanchayatChart = new Chart(panchayatCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['GP A', 'GP B', 'GP C', 'GP D', 'GP E'],
+                        datasets: [{
+                            label: 'Approved Records',
+                            data: [45, 38, 32, 28, 24],
+                            backgroundColor: 'rgba(67, 233, 123, 0.8)',
+                            borderColor: 'rgb(67, 233, 123)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
                         }
                     }
-                }
+                });
+                console.log('Panchayat chart created successfully');
+            } catch (error) {
+                console.error('Error creating panchayat chart:', error);
             }
-        });
-
-        // Monthly Trends Line Chart (Sample data - you'll need to pass this from backend)
-        const trendsChart = new Chart(document.getElementById('trendsChart'), {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'New Records',
-                    data: [12, 19, 15, 25, 22, 30], // Replace with actual monthly data
-                    borderColor: chartColors.primary[2],
-                    backgroundColor: chartColors.primary[2] + '20',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        function generateReport() {
-            alert('Advanced report generation feature will be implemented soon!');
         }
 
-        function refreshDashboard() {
-            location.reload();
+        // Load table data
+        loadRecentApprovedRecords();
+    }
+
+    function initPendingCharts() {
+        console.log('Initializing pending charts');
+        
+        if (pendingAgeChart) {
+            pendingAgeChart.destroy();
+            pendingAgeChart = null;
         }
-    </script>
+
+        const pendingCtx = document.getElementById('pendingAgeChart');
+        if (pendingCtx) {
+            try {
+                pendingAgeChart = new Chart(pendingCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['0-7 days', '8-15 days', '16-30 days', '31-60 days', '60+ days'],
+                        datasets: [{
+                            label: 'Pending Records',
+                            data: [15, 25, 30, 20, 10],
+                            backgroundColor: [
+                                'rgba(255, 193, 7, 0.8)',
+                                'rgba(255, 152, 0, 0.8)',
+                                'rgba(255, 87, 34, 0.8)',
+                                'rgba(244, 67, 54, 0.8)',
+                                'rgba(183, 28, 28, 0.8)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    });
+                console.log('Pending chart created successfully');
+            } catch (error) {
+                console.error('Error creating pending chart:', error);
+            }
+        }
+
+        loadHighPriorityCases();
+    }
+
+    function initInReviewCharts() {
+        console.log('In review charts - placeholder');
+    }
+
+    function initDisapprovedCharts() {
+        console.log('Initializing disapproved charts');
+        
+        if (disapprovalReasonsChart) {
+            disapprovalReasonsChart.destroy();
+            disapprovalReasonsChart = null;
+        }
+
+        const reasonsCtx = document.getElementById('disapprovalReasonsChart');
+        if (reasonsCtx) {
+            try {
+                disapprovalReasonsChart = new Chart(reasonsCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Incomplete Documents', 'Eligibility Issues', 'Technical Errors', 'Missing Information', 'Others'],
+                        datasets: [{
+                            data: [35, 25, 20, 15, 5],
+                            backgroundColor: [
+                                '#f093fb',
+                                '#f5576c',
+                                '#4facfe',
+                                '#43e97b',
+                                '#ffecd2'
+                            ],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true
+                            }
+                        }
+                    }
+                });
+                console.log('Disapproval reasons chart created successfully');
+            } catch (error) {
+                console.error('Error creating disapproval reasons chart:', error);
+            }
+        }
+
+        loadDisapprovalReasons();
+    }
+
+    function initRejectedCharts() {
+        console.log('Rejected charts - placeholder');
+    }
+
+    // Data loading functions
+    function loadRecentApprovedRecords() {
+        const tableBody = document.getElementById('recentApprovedTable');
+        if (tableBody) {
+            const sampleData = [
+                {name: 'Ram Kumar', panchayat: 'Village A', amount: '₹1,20,000', date: '2024-01-15'},
+                {name: 'Sita Devi', panchayat: 'Village B', amount: '₹1,00,000', date: '2024-01-14'},
+                {name: 'Mohan Lal', panchayat: 'Village C', amount: '₹1,50,000', date: '2024-01-13'},
+                {name: 'Geeta Sharma', panchayat: 'Village A', amount: '₹1,30,000', date: '2024-01-12'},
+                {name: 'Rajesh Singh', panchayat: 'Village D', amount: '₹1,10,000', date: '2024-01-11'}
+            ];
+
+            tableBody.innerHTML = sampleData.map(record => `
+                <tr>
+                    <td>${record.name}</td>
+                    <td>${record.panchayat}</td>
+                    <td><strong class="text-success">${record.amount}</strong></td>
+                    <td><small class="text-muted">${record.date}</small></td>
+                </tr>
+            `).join('');
+        }
+    }
+
+    function loadHighPriorityCases() {
+        const priorityList = document.getElementById('highPriorityList');
+        if (priorityList) {
+            const cases = [
+                {name: 'Case #1234', days: 45, status: 'Critical'},
+                {name: 'Case #1235', days: 38, status: 'High'},
+                {name: 'Case #1236', days: 32, status: 'High'},
+                {name: 'Case #1237', days: 28, status: 'Medium'}
+            ];
+
+            priorityList.innerHTML = cases.map(item => `
+                <div class="priority-item d-flex justify-content-between align-items-center p-3 mb-2 bg-light rounded">
+                    <div>
+                        <h6 class="mb-1">${item.name}</h6>
+                        <small class="text-muted">${item.days} days pending</small>
+                    </div>
+                    <span class="badge bg-${item.status === 'Critical' ? 'danger' : item.status === 'High' ? 'warning' : 'info'}">
+                        ${item.status}
+                    </span>
+                </div>
+            `).join('');
+        }
+    }
+
+    function loadDisapprovalReasons() {
+        const reasonsList = document.getElementById('disapprovalReasonsList');
+        if (reasonsList) {
+            const reasons = [
+                {reason: 'Incomplete Documentation', count: 35, percentage: 35},
+                {reason: 'Eligibility Issues', count: 25, percentage: 25},
+                {reason: 'Technical Errors', count: 20, percentage: 20},
+                {reason: 'Missing Information', count: 15, percentage: 15},
+                {reason: 'Others', count: 5, percentage: 5}
+            ];
+
+            reasonsList.innerHTML = reasons.map(item => `
+                <div class="reason-item d-flex justify-content-between align-items-center p-3 mb-2 border rounded">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">${item.reason}</h6>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-danger" style="width: ${item.percentage}%"></div>
+                        </div>
+                    </div>
+                    <div class="text-end ms-3">
+                        <span class="fw-bold">${item.count}</span>
+                        <br>
+                        <small class="text-muted">${item.percentage}%</small>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Button functions
+    function exportApprovedData() { alert('Export functionality will be implemented'); }
+    function refreshApprovedData() { location.reload(); }
+    function bulkApprove() { alert('Bulk approve functionality will be implemented'); }
+    function refreshPendingData() { location.reload(); }
+    function assignReviewer() { alert('Assign reviewer functionality will be implemented'); }
+    function refreshInReviewData() { location.reload(); }
+    function allowResubmission() { alert('Allow resubmission functionality will be implemented'); }
+    function refreshDisapprovedData() { location.reload(); }
+    function archiveRejected() { alert('Archive functionality will be implemented'); }
+    function refreshRejectedData() { location.reload(); }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-close success messages after 3 seconds
+        const successAlerts = document.querySelectorAll('.alert-success');
+        successAlerts.forEach(alert => {
+            setTimeout(() => {
+                const closeButton = alert.querySelector('.btn-close');
+                if (closeButton) {
+                    closeButton.click();
+                }
+            }, 3000);
+        });
+
+        // Auto-close error messages after 5 seconds
+        const dangerAlerts = document.querySelectorAll('.alert-danger');
+        dangerAlerts.forEach(alert => {
+            setTimeout(() => {
+                const closeButton = alert.querySelector('.btn-close');
+                if (closeButton) {
+                    closeButton.click();
+                }
+            }, 5000);
+        });
+    });
+</script>
 </body>
 </html>

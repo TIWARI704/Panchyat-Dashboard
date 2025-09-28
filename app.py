@@ -32,7 +32,6 @@ def home():
 
 
 def main():
-    print("✅ Connected to MongoDB:", app.config["MONGO_URI"])
     app.run(debug=True)
 
 if __name__ == "__main__":

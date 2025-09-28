@@ -15,7 +15,7 @@ class PanchayatRecord:
         self.father_name = father_name
         self.mother_name = mother_name
         self.category = category
-        self.priority = priority
+        self.priority = int(priority) if priority and str(priority).isdigit() else 0
         self.schema_code = schema_code
         self.bank_name = bank_name
         self.branch_name = branch_name
