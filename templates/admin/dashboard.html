@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
@@ -103,7 +104,7 @@
             <!-- Tab Content -->
             <div class="tab-content mt-4" id="schemeTabContent">
     
-                <!-- Approved Records Tab -->
+                <!-- Mukhyamantri majhi ladki bahin  -->
                 <div class="tab-pane fade show active" id="approved" role="tabpanel" aria-labelledby="approved-tab">
                     <div class="row mb-4">
                         <div class="col-12">
@@ -111,14 +112,7 @@
                                 <h4 class="text-success mb-0">
                                     <i class="fas fa-check-circle me-2"></i>Approved Records Dashboard
                                 </h4>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-success btn-sm" onclick="exportApprovedData()">
-                                        <i class="fas fa-download me-1"></i>Export
-                                    </button>
-                                    <button class="btn btn-outline-success btn-sm" onclick="refreshApprovedData()">
-                                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                                    </button>
-                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -126,7 +120,7 @@
                     <!-- Key Metrics Row -->
                     <div class="row mb-4">
                         <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="metric-card success">
+                    <div class="metric-card success">
                                 <div class="metric-icon">
                                     <i class="fas fa-check-double"></i>
                                 </div>
@@ -135,8 +129,8 @@
                                     <p class="metric-label">Total Approved</p>
                                     <small class="metric-change positive">+{{ approved_status.recent_count or 0 }} this month</small>
                                 </div>
-                            </div>
                         </div>
+                </div>
                         <div class="col-lg-3 col-md-6 mb-3">
                             <div class="metric-card success-light">
                                 <div class="metric-icon">
@@ -238,7 +232,7 @@
                     </div>
                 </div>
 
-                <!-- Pending Records Tab -->
+                <!-- New Portal Data Mukhyamantri majhi ladki bahin -->
                 <div class="tab-pane fade" id="pending" role="tabpanel" aria-labelledby="pending-tab">
                     <div class="row mb-4">
                         <div class="col-12">
@@ -246,14 +240,6 @@
                                 <h4 class="text-warning mb-0">
                                     <i class="fas fa-clock me-2"></i>Pending Records Dashboard
                                 </h4>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-warning btn-sm" onclick="bulkApprove()">
-                                        <i class="fas fa-check me-1"></i>Bulk Approve
-                                    </button>
-                                    <button class="btn btn-outline-warning btn-sm" onclick="refreshPendingData()">
-                                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -310,23 +296,6 @@
                         </div>
                     </div>
 
-                    <!-- Priority Actions -->
-                    <div class="row mb-4">
-                        <div class="col-12">
-                            <div class="alert-container">
-                                <div class="alert alert-warning d-flex align-items-center">
-                                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
-                                    <div class="flex-grow-1">
-                                        <h6 class="alert-heading mb-1">Action Required</h6>
-                                        <p class="mb-2">{{ pending_stats.overdue_count or 0 }} records are overdue for review. Consider prioritizing these cases.</p>
-                                        <button class="btn btn-warning btn-sm me-2">Review Overdue Cases</button>
-                                        <button class="btn btn-outline-warning btn-sm">Generate Report</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Charts and Data -->
                     <div class="row mb-4">
                         <div class="col-lg-8 mb-4">
@@ -350,7 +319,7 @@
                     </div>
                 </div>
 
-                <!-- In Review Tab -->
+                <!-- Approved -->
                 <div class="tab-pane fade" id="inreview" role="tabpanel" aria-labelledby="inreview-tab">
                     <div class="row mb-4">
                         <div class="col-12">
@@ -358,14 +327,6 @@
                                 <h4 class="text-info mb-0">
                                     <i class="fas fa-search me-2"></i>Records Under Review
                                 </h4>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-info btn-sm" onclick="assignReviewer()">
-                                        <i class="fas fa-user-plus me-1"></i>Assign Reviewer
-                                    </button>
-                                    <button class="btn btn-outline-info btn-sm" onclick="refreshInReviewData()">
-                                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -410,6 +371,12 @@
                         </div>
                     </div>
 
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h5><i class="fas fa-chart-bar me-2"></i>Top Performing Panchayats</h5>
+                        </div>
+                            <canvas id="inreviewPanchayatChart" height="300"></canvas>
+                        </div>
                     <!-- Review Progress -->
                     <div class="row mb-4">
                         <div class="col-12">
@@ -443,7 +410,7 @@
                     </div>
                 </div>
 
-                <!-- Disapproved Tab -->
+                <!-- Pending -->
                 <div class="tab-pane fade" id="disapproved" role="tabpanel" aria-labelledby="disapproved-tab">
                     <div class="row mb-4">
                         <div class="col-12">
@@ -451,14 +418,6 @@
                                 <h4 class="text-danger mb-0">
                                     <i class="fas fa-times-circle me-2"></i>Disapproved Records
                                 </h4>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-warning btn-sm" onclick="allowResubmission()">
-                                        <i class="fas fa-redo me-1"></i>Allow Resubmission
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm" onclick="refreshDisapprovedData()">
-                                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -540,7 +499,7 @@
                     </div>
                 </div>
 
-                <!-- Rejected Tab -->
+                <!-- In Review -->
                 <div class="tab-pane fade" id="rejected" role="tabpanel" aria-labelledby="rejected-tab">
                     <div class="row mb-4">
                         <div class="col-12">
@@ -548,14 +507,6 @@
                                 <h4 class="text-danger mb-0">
                                     <i class="fas fa-ban me-2"></i>Rejected Records
                                 </h4>
-                                <div class="d-flex gap-2">
-                                    <button class="btn btn-danger btn-sm" onclick="archiveRejected()">
-                                        <i class="fas fa-archive me-1"></i>Archive All
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm" onclick="refreshRejectedData()">
-                                        <i class="fas fa-sync-alt me-1"></i>Refresh
-                                    </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -571,12 +522,12 @@
                     </div>
                 </div>
 
-                <!-- Copy Disapproved Tab -->
+                <!-- Disapproved & Rejected -->
                 <div class="tab-pane fade" id="copy-disapproved" role="tabpanel" aria-labelledby="copy-disapproved-tab">
-                    <!-- Archive/backup view of disapproved records -->
+                    
                 </div>
 
-                <!-- Copy Rejected Tab -->
+                <!-- Copy of disapproved & Rejected -->
                 <div class="tab-pane fade" id="copy-rejected" role="tabpanel" aria-labelledby="copy-rejected-tab">
                     <!-- Archive/backup view of rejected records -->
                 </div>
@@ -603,11 +554,6 @@
                                     <i class="fas fa-download me-2"></i>Export Excel
                                 </a>
                             </div>
-                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
-                                <button class="action-btn warning w-100" onclick="generateReport()">
-                                    <i class="fas fa-chart-bar me-2"></i>Generate Report
-                                </button>
-                            </div>
                             {% if session.is_superadmin %}
                             <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
                                 <a href="{{ url_for('admin.manage_users') }}" class="action-btn purple">
@@ -615,11 +561,6 @@
                                 </a>
                             </div>
                             {% endif %}
-                            <div class="col-lg-2 col-md-4 col-sm-6 mb-2">
-                                <button class="action-btn" onclick="refreshDashboard()">
-                                    <i class="fas fa-sync-alt me-2"></i>Refresh Data
-                                </button>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -627,25 +568,30 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
     // Wait for everything to load completely
-    window.addEventListener('load', function() {
-        console.log('Chart.js version:', Chart.version);
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, Chart.js version:', Chart.version);
         
-        // Initialize charts after a small delay
+        // Initialize charts immediately for the active tab
         setTimeout(function() {
             initializeChartsForTab('#approved');
-        }, 1000);
+        }, 500);
         
         // Tab change listeners
-        document.addEventListener('shown.bs.tab', function(event) {
-            const targetId = event.target.getAttribute('data-bs-target');
-            setTimeout(() => {
-                initializeChartsForTab(targetId);
-            }, 300);
+        const tabButtons = document.querySelectorAll('#schemeTabs button[data-bs-toggle="tab"]');
+        tabButtons.forEach(button => {
+            button.addEventListener('shown.bs.tab', function(event) {
+                const targetId = event.target.getAttribute('data-bs-target');
+                console.log('Tab changed to:', targetId);
+                setTimeout(() => {
+                    initializeChartsForTab(targetId);
+                }, 300);
+            });
         });
+        
+        // Auto-close alerts
+        autoCloseAlerts();
     });
 
     function initializeChartsForTab(tabId) {
@@ -678,37 +624,23 @@
     let disapprovalReasonsChart = null;
 
     function initApprovedCharts() {
-        console.log('Initializing approved charts');
-        
-        // Destroy existing charts if they exist
-        if (approvedTrendsChart) {
-            approvedTrendsChart.destroy();
-            approvedTrendsChart = null;
-        }
-        if (approvedCategoryChart) {
-            approvedCategoryChart.destroy();
-            approvedCategoryChart = null;
-        }
-        if (approvedPanchayatChart) {
-            approvedPanchayatChart.destroy();
-            approvedPanchayatChart = null;
-        }
 
         // Create Approval Trends Chart
         const trendsCtx = document.getElementById('approvedTrendsChart');
-        if (trendsCtx) {
+        if (trendsCtx && trendsCtx.getContext) {
             try {
-                approvedTrendsChart = new Chart(trendsCtx, {
+                approvedTrendsChart = new Chart(trendsCtx.getContext('2d'), {
                     type: 'line',
                     data: {
-                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        labels: {{ monthly_labels | tojson if monthly_labels else ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'] }},
                         datasets: [{
                             label: 'Approved Records',
-                            data: [12, 19, 15, 25, 22, 30],
+                            data: {{ monthly_data | tojson if monthly_data else [12, 19, 15, 25, 22, 30] }},
                             borderColor: 'rgb(67, 233, 123)',
                             backgroundColor: 'rgba(67, 233, 123, 0.1)',
                             tension: 0.4,
-                            fill: true
+                            fill: true,
+                            borderWidth: 3
                         }]
                     },
                     options: {
@@ -716,7 +648,8 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: {
-                                display: false
+                                display: true,
+                                position: 'top'
                             }
                         },
                         scales: {
@@ -731,32 +664,53 @@
                                 display: false
                             }
                         }
+                    },
+                    elements: {
+                        point: {
+                            radius: 5,
+                            hoverRadius: 8
+                        }
                     }
-                });
-                console.log('Trends chart created successfully');
+                }
+                
+            });
             } catch (error) {
                 console.error('Error creating trends chart:', error);
             }
+        } else {
+            console.error('Trends chart canvas not found or invalid');
         }
 
         // Create Category Distribution Chart
         const categoryCtx = document.getElementById('approvedCategoryChart');
-        if (categoryCtx) {
+        if (categoryCtx && categoryCtx.getContext) {
             try {
-                approvedCategoryChart = new Chart(categoryCtx, {
+                // Prepare category data from backend
+                const categoryData = {{ category_stats | tojson if category_stats else [] }};
+                const labels = categoryData.map(item => item._id || 'Unknown');
+                const data = categoryData.map(item => item.count || 0);
+                
+                // Default data if no backend data
+                const defaultLabels = ['SC', 'ST', 'OBC', 'General', 'EWS'];
+                const defaultData = [30, 25, 20, 15, 10];
+                
+                approvedCategoryChart = new Chart(categoryCtx.getContext('2d'), {
                     type: 'doughnut',
                     data: {
-                        labels: ['SC', 'ST', 'OBC', 'General', 'EWS'],
+                        labels: labels.length > 0 ? labels : defaultLabels,
                         datasets: [{
-                            data: [30, 25, 20, 15, 10],
+                            data: data.length > 0 ? data : defaultData,
                             backgroundColor: [
                                 '#43e97b',
                                 '#38f9d7',
                                 '#4facfe',
                                 '#667eea',
-                                '#764ba2'
+                                '#764ba2',
+                                '#f093fb',
+                                '#ffc107'
                             ],
-                            borderWidth: 0
+                            borderWidth: 2,
+                            borderColor: '#fff'
                         }]
                     },
                     options: {
@@ -767,31 +721,46 @@
                                 position: 'bottom',
                                 labels: {
                                     padding: 20,
-                                    usePointStyle: true
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
                             }
                         }
                     }
                 });
-                console.log('Category chart created successfully');
             } catch (error) {
                 console.error('Error creating category chart:', error);
             }
+        } else {
+            console.error('Category chart canvas not found or invalid');
         }
 
         // Create Top Panchayats Chart
         const panchayatCtx = document.getElementById('approvedPanchayatChart');
-        if (panchayatCtx) {
+        if (panchayatCtx && panchayatCtx.getContext) {
             try {
-                approvedPanchayatChart = new Chart(panchayatCtx, {
+                // Prepare panchayat data from backend
+                const panchayatData = {{ panchayat_stats | tojson if panchayat_stats else [] }};
+                const labels = panchayatData.slice(0, 5).map(item => item._id || 'Unknown');
+                const data = panchayatData.slice(0, 5).map(item => item.count || 0);
+                
+                // Default data if no backend data
+                const defaultLabels = ['GP A', 'GP B', 'GP C', 'GP D', 'GP E'];
+                const defaultData = [45, 38, 32, 28, 24];
+                
+                approvedPanchayatChart = new Chart(panchayatCtx.getContext('2d'), {
                     type: 'bar',
                     data: {
-                        labels: ['GP A', 'GP B', 'GP C', 'GP D', 'GP E'],
+                        labels: labels.length > 0 ? labels : defaultLabels,
                         datasets: [{
                             label: 'Approved Records',
-                            data: [45, 38, 32, 28, 24],
+                            data: data.length > 0 ? data : defaultData,
                             backgroundColor: 'rgba(67, 233, 123, 0.8)',
                             borderColor: 'rgb(67, 233, 123)',
-                            borderWidth: 1
+                            borderWidth: 2,
+                            borderRadius: 5
                         }]
                     },
                     options: {
@@ -815,11 +784,13 @@
                             }
                         }
                     }
+                }
                 });
-                console.log('Panchayat chart created successfully');
             } catch (error) {
                 console.error('Error creating panchayat chart:', error);
             }
+        } else {
+            console.error('Panchayat chart canvas not found or invalid');
         }
 
         // Load table data
@@ -829,15 +800,12 @@
     function initPendingCharts() {
         console.log('Initializing pending charts');
         
-        if (pendingAgeChart) {
-            pendingAgeChart.destroy();
-            pendingAgeChart = null;
-        }
+        destroyChart('pendingAgeChart');
 
         const pendingCtx = document.getElementById('pendingAgeChart');
-        if (pendingCtx) {
+        if (pendingCtx && pendingCtx.getContext) {
             try {
-                pendingAgeChart = new Chart(pendingCtx, {
+                pendingAgeChart = new Chart(pendingCtx.getContext('2d'), {
                     type: 'bar',
                     data: {
                         labels: ['0-7 days', '8-15 days', '16-30 days', '31-60 days', '60+ days'],
@@ -851,7 +819,8 @@
                                 'rgba(244, 67, 54, 0.8)',
                                 'rgba(183, 28, 28, 0.8)'
                             ],
-                            borderWidth: 1
+                            borderWidth: 2,
+                            borderColor: '#fff'
                         }]
                     },
                     options: {
@@ -864,35 +833,82 @@
                         },
                         scales: {
                             y: {
-                                beginAtZero: true
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
                             }
                         }
-                    });
+                    }
+                }
+                });
                 console.log('Pending chart created successfully');
             } catch (error) {
                 console.error('Error creating pending chart:', error);
             }
+        } else {
+            console.error('Pending chart canvas not found or invalid');
         }
 
         loadHighPriorityCases();
     }
 
     function initInReviewCharts() {
-        console.log('In review charts - placeholder');
+        const ctx =document.getElementById('inreviewPanchayatChart');
+        if (ctx && ctx.getContext) {
+            try{
+                const panchayatData = {{ panchayat_stats | tojson if panchayat_stats else [] }};
+                const labels = (panchayatData.slice(0,5).map(item => item._id || 'Unknown')) || ['GP A','GP B','GP C','GP D','GP E'];
+                const data = (panchayatData.slice(0,5).map(item => item.count || 0)) || [45,38,32,28,24];
+
+                // destroy existing chart attached to this canvas (if any)
+                if (ctx.chart) { ctx.chart.destroy(); ctx.chart = null; }
+
+                ctx.chart = new Chart(ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Records (In Review)',
+                            data: data,
+                            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 2,
+                            borderRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.1)' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            } 
+            catch (err) {
+                console.error('Error creating in-review panchayat chart:', err);
+            }
+        } else {
+            console.error('In-review panchayat chart canvas not found or invalid');
+        }
     }
 
     function initDisapprovedCharts() {
         console.log('Initializing disapproved charts');
         
-        if (disapprovalReasonsChart) {
-            disapprovalReasonsChart.destroy();
-            disapprovalReasonsChart = null;
-        }
+        destroyChart('disapprovalReasonsChart');
 
         const reasonsCtx = document.getElementById('disapprovalReasonsChart');
-        if (reasonsCtx) {
+        if (reasonsCtx && reasonsCtx.getContext) {
             try {
-                disapprovalReasonsChart = new Chart(reasonsCtx, {
+                disapprovalReasonsChart = new Chart(reasonsCtx.getContext('2d'), {
                     type: 'pie',
                     data: {
                         labels: ['Incomplete Documents', 'Eligibility Issues', 'Technical Errors', 'Missing Information', 'Others'],
@@ -905,7 +921,8 @@
                                 '#43e97b',
                                 '#ffecd2'
                             ],
-                            borderWidth: 0
+                            borderWidth: 2,
+                            borderColor: '#fff'
                         }]
                     },
                     options: {
@@ -916,7 +933,11 @@
                                 position: 'bottom',
                                 labels: {
                                     padding: 15,
-                                    usePointStyle: true
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
                             }
                         }
                     }
@@ -925,6 +946,8 @@
             } catch (error) {
                 console.error('Error creating disapproval reasons chart:', error);
             }
+        } else {
+            console.error('Disapproval reasons chart canvas not found or invalid');
         }
 
         loadDisapprovalReasons();
@@ -932,6 +955,16 @@
 
     function initRejectedCharts() {
         console.log('Rejected charts - placeholder');
+        // Add charts for rejected tab if needed
+    }
+
+    // Helper function to destroy existing chart
+    function destroyChart(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if (canvas && canvas.chart) {
+            canvas.chart.destroy();
+            canvas.chart = null;
+        }
     }
 
     // Data loading functions
@@ -1010,19 +1043,7 @@
         }
     }
 
-    // Button functions
-    function exportApprovedData() { alert('Export functionality will be implemented'); }
-    function refreshApprovedData() { location.reload(); }
-    function bulkApprove() { alert('Bulk approve functionality will be implemented'); }
-    function refreshPendingData() { location.reload(); }
-    function assignReviewer() { alert('Assign reviewer functionality will be implemented'); }
-    function refreshInReviewData() { location.reload(); }
-    function allowResubmission() { alert('Allow resubmission functionality will be implemented'); }
-    function refreshDisapprovedData() { location.reload(); }
-    function archiveRejected() { alert('Archive functionality will be implemented'); }
-    function refreshRejectedData() { location.reload(); }
-
-    document.addEventListener('DOMContentLoaded', function() {
+    function autoCloseAlerts() {
         // Auto-close success messages after 3 seconds
         const successAlerts = document.querySelectorAll('.alert-success');
         successAlerts.forEach(alert => {
@@ -1044,7 +1065,7 @@
                 }
             }, 5000);
         });
-    });
-</script>
+    }
+    </script>
 </body>
 </html>
