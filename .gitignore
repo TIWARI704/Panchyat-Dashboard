@@ -155,5 +155,4 @@ uploads/
 media/
 
 # Config files with sensitive data
-config.py
 local_settings.py
