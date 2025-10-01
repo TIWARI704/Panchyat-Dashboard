@@ -1,8 +1,20 @@
+"""
+User Model
+
+This module defines the User model for the Panchayat Management System.
+It handles user authentication, role management, and access control.
+"""
+
 from datetime import datetime
 from werkzeug.security import check_password_hash, generate_password_hash
 from bson.objectid import ObjectId
 
 class User:
+    """
+    User model for managing user accounts and permissions.
+    
+    Supports role-based access control with department and scheme-level permissions.
+    """
     def __init__(self, username, password, email=None, role='user', is_admin=False, is_superadmin=False, 
                  department_access=None, scheme_access=None):
         self.username = username
@@ -46,7 +58,6 @@ class User:
             is_admin = user_data.get('is_admin', role in ['admin', 'superadmin'])
             is_superadmin = user_data.get('is_superadmin', role == 'superadmin')
             
-            print(f"Model: Creating user {username} with role {role}")
             
             # Check if user already exists
             existing_user = mongo.db.users.find_one({'username': username})
@@ -104,7 +115,6 @@ class User:
             user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
             return user
         except Exception as e:
-            print(f"Error getting user by ID: {e}")
             return None
 
     @staticmethod
@@ -118,7 +128,6 @@ class User:
             )
             return result.modified_count > 0
         except Exception as e:
-            print(f"Error updating user: {e}")
             return False
 
     @staticmethod
@@ -142,7 +151,11 @@ class User:
                 return {
                     'has_all_access': True,
                     'departments': departments,
-                    'schemes': schemes
+                    'schemes': schemes,
+                    'department_access': [str(dept['_id']) for dept in departments],
+                    'scheme_access': [str(scheme['_id']) for scheme in schemes],
+                    'department_ids': [str(dept['_id']) for dept in departments],
+                    'scheme_ids': [str(scheme['_id']) for scheme in schemes]
                 }
             
             # Get user's specific access
@@ -175,11 +188,12 @@ class User:
                 'departments': departments,
                 'schemes': schemes,
                 'department_access': department_access,
-                'scheme_access': scheme_access
+                'scheme_access': scheme_access,
+                'department_ids': department_access,
+                'scheme_ids': scheme_access
             }
             
         except Exception as e:
-            print(f"Error getting user access info: {e}")
             return None
 
     @staticmethod
@@ -199,7 +213,6 @@ class User:
             return str(department_id) in department_access
             
         except Exception as e:
-            print(f"Error checking department access: {e}")
             return False
 
     @staticmethod
@@ -219,7 +232,6 @@ class User:
             return str(scheme_id) in scheme_access
             
         except Exception as e:
-            print(f"Error checking scheme access: {e}")
             return False
 
     @staticmethod
@@ -251,5 +263,4 @@ class User:
             return schemes
             
         except Exception as e:
-            print(f"Error getting accessible schemes for department: {e}")
             return []

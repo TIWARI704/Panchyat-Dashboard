@@ -1,3 +1,10 @@
+"""
+Admin Routes Module
+
+This module contains all admin-specific routes for the Panchayat Management System.
+It handles dashboard, record management, user management, and department/scheme management.
+"""
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, make_response, jsonify
 from models.admin import PanchayatRecord
 from models.login import User
@@ -10,12 +17,12 @@ import pandas as pd
 import io
 import json
 
-
+# Initialize admin blueprint
 admin_bp = Blueprint('admin', __name__)
 mongo = None
 
-
 def intialize_admin(db):
+    """Initialize MongoDB connection for admin routes"""
     global mongo
     mongo = db
 
@@ -66,31 +73,26 @@ def dashboard():
         try:
             approved_stats = calculate_approved_stats(mongo)
         except Exception as e:
-            print(f"Error calculating approved stats: {e}")
             approved_stats = {'count': 0, 'recent_count': 0, 'total_amount': 0, 'avg_amount': 0, 'this_month': 0, 'completion_rate': 0, 'avg_processing_days': 0, 'fastest_approval': 0}
         
         try:
             pending_stats = calculate_pending_stats(mongo)
         except Exception as e:
-            print(f"Error calculating pending stats: {e}")
             pending_stats = {'count': 0, 'recent_count': 0, 'overdue_count': 0, 'avg_waiting_days': 0, 'longest_waiting': 0, 'total_amount': 0, 'avg_amount': 0}
         
         try:
             inreview_stats = calculate_inreview_stats(mongo)
         except Exception as e:
-            print(f"Error calculating inreview stats: {e}")
             inreview_stats = {'count': 0, 'today_count': 0, 'reviewers': 0, 'avg_per_reviewer': 0, 'avg_review_days': 0, 'efficiency': 0, 'doc_verified': 0, 'field_pending': 0, 'final_pending': 0}
         
         try:
             disapproved_stats = calculate_disapproved_stats(mongo)
         except Exception as e:
-            print(f"Error calculating disapproved stats: {e}")
             disapproved_stats = {'count': 0, 'this_month': 0, 'resubmitted': 0, 'resubmit_rate': 0, 'top_reason_count': 0, 'top_reason': 'Main Issue', 'disapproval_rate': 0, 'trend': 'stable', 'trend_text': 'vs last month'}
         
         try:
             rejected_stats = calculate_rejected_stats(mongo)
         except Exception as e:
-            print(f"Error calculating rejected stats: {e}")
             rejected_stats = {'count': 0, 'recent_count': 0}
         
         return render_template("admin/dashboard.html", 
@@ -112,7 +114,6 @@ def dashboard():
                              
     except Exception as e:
         flash('An error occurred while loading the dashboard.', 'error')
-        print(f"Dashboard error: {e}")
         # Return with default empty stats
         empty_stats = get_default_stats()
         return render_template("admin/dashboard.html", 
@@ -404,7 +405,6 @@ def add_record():
             
         except Exception as e:
             flash('An error occurred while adding the record.', 'error')
-            print(f"Add record error: {e}")
 
     # GET request - show form
     return render_template('admin/add_record.html')
@@ -442,7 +442,6 @@ def view_records():
                 disapproved_stats = calculate_disapproved_stats(mongo)
                 rejected_stats = calculate_rejected_stats(mongo)
             except Exception as e:
-                print(f"Error loading dashboard stats: {e}")
                 # Provide default values
                 stats = {'total_records': 0, 'total_amount': 0, 'category_stats': [], 'panchayat_stats': []}
                 approved_stats = {'count': 0, 'recent_count': 0}
@@ -486,7 +485,6 @@ def view_records():
             
     except Exception as e:
         flash('Error loading records', 'error')
-        print(f"View records error: {e}")
         return render_template('admin/view_records.html', records=[], page=1, 
                              total_records=0, total_pages=0, search='', 
                              department_ids=[], scheme_ids=[],
@@ -535,7 +533,6 @@ def export_excel():
         return response
     except Exception as e:
         flash('An error occurred while exporting data.', 'error')
-        print(f"Export Excel error: {e}")
         return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/delete-record/<record_id>', methods=['POST'])
@@ -552,7 +549,6 @@ def delete_record(record_id):
             return jsonify({'success': False, 'message': 'Record not found or could not be deleted'})
             
     except Exception as e:
-        print(f"Delete error: {e}")
         return jsonify({'success': False, 'message': f'Error deleting record: {str(e)}'})
 
 @admin_bp.route('/api/update-record/<record_id>', methods=['POST'])
@@ -567,23 +563,17 @@ def update_record_api(record_id):
         
         # Get scheme information to understand the data structure
         scheme_id = record.get('scheme_id')
-        print(f"DEBUG: Record scheme_id: {scheme_id}")
-        
+        # Handle ObjectId format for scheme_id
         if scheme_id:
-            # Handle ObjectId format
             if isinstance(scheme_id, dict) and '$oid' in scheme_id:
                 scheme_id = scheme_id['$oid']
             scheme_result = Scheme.get_scheme_by_id(mongo, scheme_id)
             scheme = scheme_result.get('scheme') if scheme_result.get('success') else None
         else:
             scheme = None
-            
-        print(f"DEBUG: Scheme result: {scheme_result if 'scheme_result' in locals() else 'No scheme_result'}")
-        print(f"DEBUG: Scheme data: {scheme}")
         
         # Get update data from request
         update_data = request.get_json()
-        print(f"DEBUG: Update data received: {update_data}")
         
         # Prepare update data with custom_data structure
         final_update_data = {
@@ -593,7 +583,6 @@ def update_record_api(record_id):
         
         # Process custom_data fields based on scheme attributes
         if scheme and scheme.get('attributes'):
-            print(f"DEBUG: Processing {len(scheme['attributes'])} attributes")
             custom_data = {}
             for attr in scheme['attributes']:
                 field_name = attr['name']
@@ -617,11 +606,8 @@ def update_record_api(record_id):
             
             final_update_data['custom_data'] = custom_data
         
-        print(f"DEBUG: Final update data: {final_update_data}")
-        
-        # Update record
+        # Update record in database
         success = PanchayatRecord.update_record(mongo, record_id, final_update_data)
-        print(f"DEBUG: Update success: {success}")
         
         if success:
             return jsonify({'success': True, 'message': 'Record updated successfully!'})
@@ -629,7 +615,6 @@ def update_record_api(record_id):
             return jsonify({'success': False, 'message': 'Failed to update record'})
             
     except Exception as e:
-        print(f"Update record API error: {e}")
         return jsonify({'success': False, 'message': f'Error updating record: {str(e)}'})
 
 @admin_bp.route('/manage-users')
@@ -678,7 +663,6 @@ def manage_users():
         
     except Exception as e:
         flash('Error loading users', 'error')
-        print(f"Manage users error: {e}")
         return render_template('admin/manage_users.html', users=[], page=1, 
                              total_users=0, total_pages=0, search='', departments=[], schemes=[])
 
@@ -720,7 +704,6 @@ def edit_user(user_id):
             
         except Exception as e:
             flash('An error occurred while updating user.', 'error')
-            print(f"Edit user error: {e}")
     
     # GET request - show edit form
     try:
@@ -740,7 +723,6 @@ def edit_user(user_id):
         
     except Exception as e:
         flash('Error loading user', 'error')
-        print(f"Edit user GET error: {e}")
         return redirect(url_for('admin.manage_users'))
 
 @admin_bp.route('/toggle-user-status/<user_id>')
@@ -774,7 +756,6 @@ def toggle_user_status(user_id):
         
     except Exception as e:
         flash('Error updating user status', 'error')
-        print(f"Toggle user status error: {e}")
     
     return redirect(url_for('admin.manage_users'))
 
@@ -798,7 +779,6 @@ def delete_user(user_id):
         
     except Exception as e:
         flash('Error deleting user', 'error')
-        print(f"Delete user error: {e}")
     
     return redirect(url_for('admin.manage_users'))
 
@@ -860,7 +840,6 @@ def edit_record(record_id):
             
         except Exception as e:
             flash('An error occurred while updating the record.', 'error')
-            print(f"Edit record error: {e}")
     
     # GET request - show edit form
     try:
@@ -877,7 +856,6 @@ def edit_record(record_id):
         
     except Exception as e:
         flash('Error loading record', 'error')
-        print(f"Edit record GET error: {e}")
         return redirect(url_for('admin.view_records'))
 
 # Add these routes to your admin.py file
@@ -895,7 +873,6 @@ def create_user():
         status = request.form.get('status', 'active')
         full_name = request.form.get('full_name', '').strip()
 
-        print(f"Creating user: {username}, role: {role}, email: {email}")
 
         # Validation
         if not username or not password or not role:
@@ -948,7 +925,6 @@ def create_user():
             flash(result['message'], 'error')
 
     except Exception as e:
-        print(f"Error creating user: {e}")
         import traceback
         traceback.print_exc()
         flash('An error occurred while creating the user.', 'error')
@@ -1005,7 +981,6 @@ def manage_departments():
         
     except Exception as e:
         flash('Error loading departments', 'error')
-        print(f"Manage departments error: {e}")
         # Get the department ID to open from URL parameter
         open_department_id = request.args.get('open_department')
         
@@ -1047,7 +1022,6 @@ def create_department():
             
     except Exception as e:
         flash('An error occurred while creating the department.', 'error')
-        print(f"Create department error: {e}")
     
     return redirect(url_for('admin.manage_departments'))
 
@@ -1076,7 +1050,6 @@ def edit_department(department_id):
                 
         except Exception as e:
             flash('An error occurred while updating the department.', 'error')
-            print(f"Edit department error: {e}")
         
         return redirect(url_for('admin.manage_departments'))
     
@@ -1091,7 +1064,6 @@ def edit_department(department_id):
         
     except Exception as e:
         flash('Error loading department', 'error')
-        print(f"Edit department GET error: {e}")
         return redirect(url_for('admin.manage_departments'))
 
 @admin_bp.route('/delete-department/<department_id>')
@@ -1109,7 +1081,6 @@ def delete_department(department_id):
             
     except Exception as e:
         flash('Error deleting department', 'error')
-        print(f"Delete department error: {e}")
     
     return redirect(url_for('admin.manage_departments'))
 
@@ -1164,7 +1135,6 @@ def manage_schemes():
         
     except Exception as e:
         flash('Error loading schemes', 'error')
-        print(f"Manage schemes error: {e}")
         return render_template('admin/manage_schemes.html', 
                              schemes=[], 
                              departments=[],
@@ -1205,7 +1175,6 @@ def create_scheme():
             
     except Exception as e:
         flash('An error occurred while creating the scheme.', 'error')
-        print(f"Create scheme error: {e}")
     
     return redirect(url_for('admin.manage_departments'))
 
@@ -1235,7 +1204,6 @@ def edit_scheme(scheme_id):
                 
         except Exception as e:
             flash('An error occurred while updating the scheme.', 'error')
-            print(f"Edit scheme error: {e}")
         
         return redirect(url_for('admin.manage_departments'))
     
@@ -1254,7 +1222,6 @@ def edit_scheme(scheme_id):
         
     except Exception as e:
         flash('Error loading scheme', 'error')
-        print(f"Edit scheme GET error: {e}")
         return redirect(url_for('admin.manage_departments'))
 
 @admin_bp.route('/delete-scheme/<scheme_id>')
@@ -1272,7 +1239,6 @@ def delete_scheme(scheme_id):
             
     except Exception as e:
         flash('Error deleting scheme', 'error')
-        print(f"Delete scheme error: {e}")
     
     return redirect(url_for('admin.manage_departments'))
 
@@ -1430,16 +1396,11 @@ def get_filtered_records_api():
         # Get filter parameters from query string
         department_id = request.args.get('department_id')
         scheme_id = request.args.get('scheme_id')
-        
-        print(f"DEBUG: Received department_id: {department_id} (type: {type(department_id)})")
-        print(f"DEBUG: Received scheme_id: {scheme_id} (type: {type(scheme_id)})")
+        taluka = request.args.get('taluka')
         
         # Convert to lists for the get_all_records method
         department_ids = [department_id] if department_id else None
         scheme_ids = [scheme_id] if scheme_id else None
-        
-        print(f"DEBUG: department_ids: {department_ids}")
-        print(f"DEBUG: scheme_ids: {scheme_ids}")
         
         # Get filtered records with department and scheme names
         result = PanchayatRecord.get_all_records(
@@ -1447,7 +1408,8 @@ def get_filtered_records_api():
             page=1, 
             per_page=10000,
             department_ids=department_ids,
-            scheme_ids=scheme_ids
+            scheme_ids=scheme_ids,
+            taluka_filter=taluka
         )
         
         if result['success']:
@@ -1463,7 +1425,6 @@ def get_filtered_records_api():
             })
         
     except Exception as e:
-        print(f"DEBUG: Error in get_filtered_records_api: {str(e)}")
         return jsonify({
             'success': False,
             'message': f'Error fetching filtered records: {str(e)}'
@@ -1478,6 +1439,7 @@ def download_records_api():
         # Get filter parameters from query string
         department_id = request.args.get('department_id')
         scheme_id = request.args.get('scheme_id')
+        taluka = request.args.get('taluka')
         
         # Convert to lists for the get_all_records method
         department_ids = [department_id] if department_id else None
@@ -1489,7 +1451,8 @@ def download_records_api():
             page=1, 
             per_page=10000,
             department_ids=department_ids,
-            scheme_ids=scheme_ids
+            scheme_ids=scheme_ids,
+            taluka_filter=taluka
         )
         
         if not result['success']:
@@ -1551,14 +1514,10 @@ def download_records_api():
 def get_scheme_form_fields(scheme_id):
     """Get form fields for a specific scheme"""
     try:
-        print(f"DEBUG: Getting scheme form fields for scheme_id: {scheme_id} (type: {type(scheme_id)})")
-        
         # Get scheme details
         scheme_result = Scheme.get_scheme_by_id(mongo, scheme_id)
-        print(f"DEBUG: Scheme result: {scheme_result}")
         
         if not scheme_result['success']:
-            print(f"DEBUG: Scheme not found for ID: {scheme_id}")
             return jsonify({'success': False, 'message': 'Scheme not found'})
         
         scheme = scheme_result['scheme']
@@ -1584,5 +1543,4 @@ def get_scheme_form_fields(scheme_id):
         })
         
     except Exception as e:
-        print(f"Error getting scheme form fields: {e}")
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})

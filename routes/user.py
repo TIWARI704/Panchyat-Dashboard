@@ -1,3 +1,10 @@
+"""
+User Routes Module
+
+This module contains all user-specific routes for the Panchayat Management System.
+It handles user dashboard, record management, and scheme-based access control.
+"""
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from models.admin import PanchayatRecord
 from models.login import User
@@ -6,30 +13,38 @@ from models.scheme import Scheme
 from routes.login import login_required
 from datetime import datetime
 
+# Initialize user blueprint
 user_bp = Blueprint('user', __name__)
 mongo = None
 
 def intialize_user(db):
+    """Initialize MongoDB connection for user routes"""
     global mongo
     mongo = db
 
 @user_bp.route("/dashboard")
 @login_required
 def dashboard():
+    """
+    User Dashboard
+    
+    Displays user-specific statistics and analytics based on their department
+    and scheme access permissions.
+    """
     try:
         # Get user access information
         user_id = session.get('user_id')
         user_access = User.get_user_access_info(mongo, user_id)
         
-        if not user_access['success']:
+        if not user_access:
             flash('Error loading user access information.', 'error')
             return render_template("user/dashboard.html", 
                                  records_count=0, total_amount=0,
                                  category_stats=[], panchayat_stats=[])
         
         # Get basic statistics for user dashboard based on their access
-        department_ids = user_access['department_ids']
-        scheme_ids = user_access['scheme_ids']
+        department_ids = user_access.get('department_access', [])
+        scheme_ids = user_access.get('scheme_access', [])
         
         stats = PanchayatRecord.get_statistics(mongo, department_ids, scheme_ids)
         
@@ -40,7 +55,6 @@ def dashboard():
                              panchayat_stats=stats['panchayat_stats'])
     except Exception as e:
         flash('An error occurred while loading the dashboard.', 'error')
-        print(f"User dashboard error: {e}")
         return render_template("user/dashboard.html", 
                              records_count=0, total_amount=0,
                              category_stats=[], panchayat_stats=[])
@@ -48,18 +62,26 @@ def dashboard():
 @user_bp.route('/add-record', methods=['GET', 'POST'])
 @login_required
 def add_record():
+    """
+    Add New Record
+    
+    Allows users to add new records to schemes they have access to.
+    Form fields are dynamically generated based on the selected scheme's attributes.
+    """
     # Get user access information
     user_id = session.get('user_id')
     user_access = User.get_user_access_info(mongo, user_id)
     
-    if not user_access['success']:
+    if not user_access:
         flash('Error loading user access information.', 'error')
         return redirect(url_for('user.dashboard'))
     
     # Get accessible schemes for the user
     accessible_schemes = []
-    if user_access['scheme_ids']:
-        schemes_result = Scheme.get_schemes_by_ids(mongo, user_access['scheme_ids'])
+    if user_access.get('schemes'):
+        accessible_schemes = user_access['schemes']
+    elif user_access.get('scheme_access'):
+        schemes_result = Scheme.get_schemes_by_ids(mongo, user_access['scheme_access'])
         if schemes_result['success']:
             accessible_schemes = schemes_result['schemes']
     
@@ -147,19 +169,24 @@ def add_record():
             
         except Exception as e:
             flash('An error occurred while adding the record.', 'error')
-            print(f"User add record error: {e}")
 
     return render_template('user/add_record.html', schemes=accessible_schemes)
 
 @user_bp.route('/view-records')
 @login_required
 def view_records():
+    """
+    View Records
+    
+    Displays records that the user has access to based on their department
+    and scheme permissions. Includes pagination and search functionality.
+    """
     try:
         # Get user access information
         user_id = session.get('user_id')
         user_access = User.get_user_access_info(mongo, user_id)
         
-        if not user_access['success']:
+        if not user_access:
             flash('Error loading user access information.', 'error')
             return render_template('user/view_records.html', records=[], page=1, 
                                  total_records=0, total_pages=0, search='')
@@ -169,8 +196,8 @@ def view_records():
         per_page = 10
         
         # Get records based on user's access
-        department_ids = user_access['department_ids']
-        scheme_ids = user_access['scheme_ids']
+        department_ids = user_access.get('department_access', [])
+        scheme_ids = user_access.get('scheme_access', [])
         
         result = PanchayatRecord.get_records_by_user_access(mongo, page, per_page, search, department_ids, scheme_ids)
         
@@ -188,14 +215,18 @@ def view_records():
             
     except Exception as e:
         flash('Error loading records', 'error')
-        print(f"User view records error: {e}")
         return render_template('user/view_records.html', records=[], page=1, 
                              total_records=0, total_pages=0, search='')
 
 @user_bp.route('/api/scheme-form-fields/<scheme_id>')
 @login_required
 def get_scheme_form_fields(scheme_id):
-    """Get form fields for a specific scheme"""
+    """
+    Get Scheme Form Fields API
+    
+    Returns the form fields configuration for a specific scheme.
+    Used by the frontend to dynamically generate form inputs.
+    """
     try:
         # Validate user has access to this scheme
         user_id = session.get('user_id')
@@ -230,5 +261,4 @@ def get_scheme_form_fields(scheme_id):
         }
         
     except Exception as e:
-        print(f"Error getting scheme form fields: {e}")
         return {'success': False, 'message': f'Error: {str(e)}'}

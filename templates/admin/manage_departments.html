@@ -472,7 +472,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             document.getElementById('scheme_attributes').value = JSON.stringify(attributes);
         } else {
-            document.getElementById('scheme_attributes').value = JSON.stringify([]);
+            // Use default attributes when default schema is checked
+            document.getElementById('scheme_attributes').value = JSON.stringify(getDefaultAttributes());
         }
     });
     
@@ -497,7 +498,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             document.getElementById('edit_scheme_attributes').value = JSON.stringify(attributes);
         } else {
-            document.getElementById('edit_scheme_attributes').value = JSON.stringify([]);
+            // Use default attributes when default schema is checked
+            document.getElementById('edit_scheme_attributes').value = JSON.stringify(getDefaultAttributes());
         }
     });
 });
@@ -576,7 +578,7 @@ function renderSchemes(schemes, container, departmentId) {
                             <div>
                                 <button type="button" class="btn btn-sm btn-outline-primary me-1" 
                                         data-bs-toggle="modal" data-bs-target="#editSchemeModal"
-                                        data-scheme-id="${scheme._id}"
+                                        data-scheme-id="${scheme._id.$oid || scheme._id}"
                                         data-scheme-name="${scheme.name}"
                                         data-scheme-description="${scheme.description || ''}"
                                         data-department-name="${scheme.department_name}"
@@ -584,7 +586,7 @@ function renderSchemes(schemes, container, departmentId) {
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-danger" 
-                                        onclick="deleteScheme('${scheme._id}', '${scheme.name}')">
+                                        onclick="deleteScheme('${scheme._id.$oid || scheme._id}', '${scheme.name}')">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
@@ -605,10 +607,12 @@ function deleteScheme(schemeId, schemeName) {
     }
 }
 
-function populateDefaultAttributes(prefix = '') {
-    const defaultAttributes = [
+// Get default attributes array
+function getDefaultAttributes() {
+    return [
         { name: 'panchayat_name', label: 'Panchayat Name', type: 'string' },
         { name: 'village_name', label: 'Village Name', type: 'string' },
+        { name: 'taluka', label: 'Taluka', type: 'enum', options: ['Jalgaon', 'Jamner', 'Erandol', 'Dharangaon', 'Bhusawal', 'Raver', 'Muktainagar', 'Bodwad', 'Yawal', 'Amalner', 'Parola', 'Chopda', 'Pachora', 'Bhadgaon', 'Chalisgaon'] },
         { name: 'registration_number', label: 'Registration Number', type: 'string' },
         { name: 'beneficiary_name', label: 'Beneficiary Name', type: 'string' },
         { name: 'father_name', label: 'Father Name', type: 'string' },
@@ -627,6 +631,10 @@ function populateDefaultAttributes(prefix = '') {
         { name: 'house_status', label: 'House Status', type: 'enum', options: ['Complete', 'Under Construction', 'Incomplete'] },
         { name: 'inspection_date', label: 'Inspection Date', type: 'date' }
     ];
+}
+
+function populateDefaultAttributes(prefix = '') {
+    const defaultAttributes = getDefaultAttributes();
     
     const container = document.getElementById(`${prefix}attributes_list`);
     container.innerHTML = '';

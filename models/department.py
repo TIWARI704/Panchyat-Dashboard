@@ -1,8 +1,19 @@
+"""
+Department Model
+
+This module defines the Department model for the Panchayat Management System.
+It handles department management and organization structure.
+"""
+
 from datetime import datetime
 from bson import ObjectId
 
-
 class Department:
+    """
+    Department model for managing organizational departments.
+    
+    Departments contain multiple schemes and provide organizational structure.
+    """
     def __init__(self, name, description=None, is_active=True):
         self.name = name
         self.description = description
@@ -71,7 +82,6 @@ class Department:
             department = mongo.db.departments.find_one({'_id': ObjectId(department_id)})
             return department
         except Exception as e:
-            print(f"Error getting department by ID: {e}")
             return None
 
     @staticmethod

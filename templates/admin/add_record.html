@@ -129,7 +129,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function loadSchemeFields(schemeId) {
         currentSchemeId = schemeId;
-        console.log('Loading fields for scheme:', schemeId);
         
         // Show loading state
         dynamicFieldsContainer.innerHTML = `
@@ -144,11 +143,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fetch scheme form fields
         fetch(`/admin/api/scheme-form-fields/${schemeId}`)
             .then(response => {
-                console.log('API response status:', response.status);
                 return response.json();
             })
             .then(data => {
-                console.log('API response data:', data);
                 if (data.success) {
                     renderDynamicFields(data.form_fields, data.scheme_name, data.department_name);
                     submitBtn.disabled = false;
@@ -163,7 +160,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function renderDynamicFields(formFields, schemeName, departmentName) {
-        console.log('Rendering fields:', formFields);
         if (!formFields || formFields.length === 0) {
             dynamicFieldsContainer.innerHTML = `
                 <div class="alert alert-info">

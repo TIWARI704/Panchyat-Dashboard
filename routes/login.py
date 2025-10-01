@@ -1,16 +1,32 @@
+"""
+Login Routes Module
+
+This module handles user authentication, login/logout functionality,
+and provides decorators for role-based access control.
+"""
+
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from models.login import User
 from datetime import datetime
+from functools import wraps
 
+# Initialize login blueprint
 login_bp = Blueprint('login', __name__)
 mongo = None
 
 def intialize(db):
+    """Initialize MongoDB connection for login routes"""
     global mongo
     mongo = db
 
 @login_bp.route("/", methods=["GET", "POST"])
 def login():
+    """
+    User Login
+    
+    Handles user authentication. On successful login, redirects users
+    to their appropriate dashboard based on their role.
+    """
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
@@ -44,12 +60,23 @@ def login():
 
 @login_bp.route("/logout")
 def logout():
+    """
+    User Logout
+    
+    Clears the user session and redirects to the login page.
+    """
     session.clear()
     flash("You have been logged out.", "success")
     return redirect(url_for("login.login"))
 
 @login_bp.route("/register", methods=["GET", "POST"])
 def register():
+    """
+    User Registration
+    
+    Allows new users to register for the system. Only available
+    if registration is enabled in the configuration.
+    """
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
@@ -76,7 +103,11 @@ def register():
     return render_template("register.html")
 
 def login_required(f):
-    from functools import wraps
+    """
+    Decorator to require user login for accessing a route.
+    
+    Redirects to login page if user is not authenticated.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
@@ -86,7 +117,11 @@ def login_required(f):
     return decorated_function
 
 def admin_required(f):
-    from functools import wraps
+    """
+    Decorator to require admin privileges for accessing a route.
+    
+    Redirects to login page if user is not authenticated or not an admin.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session or not session.get("is_admin"):
@@ -96,7 +131,11 @@ def admin_required(f):
     return decorated_function
 
 def superadmin_required(f):
-    from functools import wraps
+    """
+    Decorator to require super admin privileges for accessing a route.
+    
+    Redirects to login page if user is not authenticated or not a super admin.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session or not session.get("is_superadmin"):
@@ -106,8 +145,12 @@ def superadmin_required(f):
     return decorated_function
 
 def can_edit_records(f):
-    """Decorator to check if user can edit records (only superadmin)"""
-    from functools import wraps
+    """
+    Decorator to check if user can edit records.
+    
+    Currently only super admins can edit records.
+    Redirects to appropriate page if user lacks permissions.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:

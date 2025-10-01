@@ -1,8 +1,19 @@
+"""
+Panchayat Record Model
+
+This module defines the PanchayatRecord model for the Panchayat Management System.
+It handles all panchayat record operations including CRUD, statistics, and data export.
+"""
+
 from datetime import datetime
 from bson import ObjectId
 
-
 class PanchayatRecord:
+    """
+    PanchayatRecord model for managing panchayat records.
+    
+    Supports dynamic schema-based data storage with department and scheme associations.
+    """
     def __init__(self, panchayat_name, village_name, registration_number, beneficiary_name, 
                  father_name, mother_name, category, priority, schema_code, bank_name, 
                  branch_name, ifsc_code, bank_account_no, sanction_no, amount_released, 
@@ -106,7 +117,7 @@ class PanchayatRecord:
             return {'success': False, 'message': f'Error creating record: {str(e)}'}
 
     @staticmethod
-    def get_all_records(mongo, page=1, per_page=10, search=None, department_ids=None, scheme_ids=None, filters=None):
+    def get_all_records(mongo, page=1, per_page=10, search=None, department_ids=None, scheme_ids=None, filters=None, taluka_filter=None):
         """Get all records with pagination, search, and filtering"""
         try:
             # Build search query
@@ -133,6 +144,10 @@ class PanchayatRecord:
             # Add scheme filter
             if scheme_ids:
                 query['scheme_id'] = {'$in': [ObjectId(scheme_id) for scheme_id in scheme_ids]}
+            
+            # Add taluka filter
+            if taluka_filter:
+                query['custom_data.taluka'] = taluka_filter
             
             # Add custom filters
             if filters:
@@ -212,7 +227,6 @@ class PanchayatRecord:
             record = mongo.db.panchayat_records.find_one({'_id': ObjectId(record_id)})
             return record
         except Exception as e:
-            print(f"Error getting record by ID: {e}")
             return None
 
     @staticmethod
@@ -226,7 +240,6 @@ class PanchayatRecord:
             )
             return result.modified_count > 0
         except Exception as e:
-            print(f"Error updating record: {e}")
             return False
 
     @staticmethod
@@ -239,7 +252,6 @@ class PanchayatRecord:
             )
             return result.modified_count > 0
         except Exception as e:
-            print(f"Error deleting record: {e}")
             return False
 
     @staticmethod
@@ -281,7 +293,6 @@ class PanchayatRecord:
             }
             
         except Exception as e:
-            print(f"Error getting statistics: {e}")
             return {
                 'total_records': 0,
                 'total_amount': 0,
@@ -325,7 +336,6 @@ class PanchayatRecord:
             return flattened_data
             
         except Exception as e:
-            print(f"Error preparing export data: {e}")
             return []
 
     @staticmethod
@@ -338,7 +348,6 @@ class PanchayatRecord:
             ]
             return list(mongo.db.panchayat_records.aggregate(pipeline))
         except Exception as e:
-            print(f"Error getting house status stats: {e}")
             return []
 
     @staticmethod
@@ -361,7 +370,6 @@ class PanchayatRecord:
             ]
             return list(mongo.db.panchayat_records.aggregate(pipeline))
         except Exception as e:
-            print(f"Error getting monthly trends: {e}")
             return []
 
     @staticmethod
@@ -460,5 +468,4 @@ class PanchayatRecord:
             return flattened_data
             
         except Exception as e:
-            print(f"Error preparing filtered export data: {e}")
             return []

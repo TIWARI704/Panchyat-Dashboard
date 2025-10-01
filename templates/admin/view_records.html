@@ -17,59 +17,89 @@
     </div>
                         <div class="card-body">
         <form id="searchForm" onsubmit="return false;">
-                                <div class="row">
-            <!-- Search Box -->
-                                    <div class="col-md-4">
-                <div class="mb-3">
-                    <label for="search" class="form-label">Search Records</label>
+            <!-- First Row: Search and Action Buttons -->
+            <div class="row">
+                <!-- Search Box -->
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="search" class="form-label">Search Records</label>
                         <div class="input-group">
                             <input type="text" class="form-control" id="search" name="search" 
                                    placeholder="Search in all fields...">
                             <button class="btn btn-outline-primary" type="button" id="searchBtn">
                                 <i class="fas fa-search"></i>
-                                        </button>
-                            <button type="button" class="btn btn-outline-secondary" id="clearBtn">
-                                            <i class="fas fa-times me-2"></i>Clear
                             </button>
+                            <button type="button" class="btn btn-outline-secondary" id="clearBtn">
+                                <i class="fas fa-times me-2"></i>Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-primary" id="advancedFilterBtn">
+                                <i class="fas fa-filter me-2"></i>Advanced Filter
+                            </button>
+                            <button type="button" class="btn btn-outline-success" id="downloadBtn">
+                                <i class="fas fa-download me-2"></i>Download
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Department Filter -->
-            <div class="col-md-2" id="departmentFilterCol" style="display: none;">
-                <div class="mb-3">
-                    <label for="department_filter" class="form-label">Department</label>
-                    <select class="form-select" id="department_filter" name="department_filter">
-                        <option value="">ALL</option>
-                    </select>
-                </div>
-                    </div>
-
-            <!-- Scheme Filter -->
-            <div class="col-md-2" id="schemeFilterCol" style="display: none;">
-                <div class="mb-3">
-                    <label for="scheme_filter" class="form-label">Scheme</label>
-                    <select class="form-select" id="scheme_filter" name="scheme_filter">
-                        <option value="">ALL</option>
-                    </select>
-                </div>
-                                </div>
             
-            <!-- Action Buttons -->
-                                    <div class="col-md-4">
-                <div class="mb-3">
-                    <label class="form-label">&nbsp;</label>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-primary" id="advancedFilterBtn">
-                            <i class="fas fa-filter me-2"></i>Advanced Filter
-                        </button>
-                        <button type="button" class="btn btn-outline-success" id="downloadBtn">
-                            <i class="fas fa-download me-2"></i>Download
-                                        </button>
+            <!-- Second Row: Filter Dropdowns -->
+            <div class="row" id="filterRow" style="display: none;">
+                <!-- Department Filter -->
+                <div class="col-4" style="display: inline-block; width: 33.33%; float: left;">
+                    <div class="mb-3">
+                        <label for="department_filter" class="form-label">Department</label>
+                        <select class="form-select" id="department_filter" name="department_filter">
+                            <option value="">ALL</option>
+                        </select>
                     </div>
                 </div>
-                                    </div>
-                                </div>
+
+                <!-- Scheme Filter -->
+                <div class="col-4" style="display: inline-block; width: 33.33%; float: left;">
+                    <div class="mb-3">
+                        <label for="scheme_filter" class="form-label">Scheme</label>
+                        <select class="form-select" id="scheme_filter" name="scheme_filter">
+                            <option value="">ALL</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Taluka Filter -->
+                <div class="col-4" style="display: inline-block; width: 33.33%; float: left;">
+                    <div class="mb-3">
+                        <label for="taluka_filter" class="form-label">Taluka</label>
+                        <select class="form-select" id="taluka_filter" name="taluka_filter">
+                            <option value="">ALL</option>
+                            <option value="Jalgaon">Jalgaon</option>
+                            <option value="Jamner">Jamner</option>
+                            <option value="Erandol">Erandol</option>
+                            <option value="Dharangaon">Dharangaon</option>
+                            <option value="Bhusawal">Bhusawal</option>
+                            <option value="Raver">Raver</option>
+                            <option value="Muktainagar">Muktainagar</option>
+                            <option value="Bodwad">Bodwad</option>
+                            <option value="Yawal">Yawal</option>
+                            <option value="Amalner">Amalner</option>
+                            <option value="Parola">Parola</option>
+                            <option value="Chopda">Chopda</option>
+                            <option value="Pachora">Pachora</option>
+                            <option value="Bhadgaon">Bhadgaon</option>
+                            <option value="Chalisgaon">Chalisgaon</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="clear: both;"></div>
+            </div>
                             </form>
                         </div>
                     </div>
@@ -390,7 +420,6 @@
 
     // Global function to update records table
     function updateRecordsTable(records) {
-        console.log('Updating records table with:', records);
         
         // Clear existing data
         allFields.clear();
@@ -435,13 +464,10 @@
         
         // Function to load superadmin filter data
         function loadSuperadminFilterData() {
-            console.log('Loading superadmin filter data...');
             fetch('/admin/api/superadmin-filter-data')
                 .then(response => response.json())
                 .then(data => {
-                    console.log('API Response:', data);
                     if (data.success) {
-                        console.log('Populating dropdowns with data:', data);
                         populateDepartmentDropdown(data.departments);
                         populateSchemeDropdown(data.schemes);
                         showFilterRow();
@@ -456,7 +482,6 @@
         }
         
         function populateDepartmentDropdown(departments) {
-            console.log('Populating department dropdown with:', departments);
             const departmentSelect = document.getElementById('department_filter');
             if (!departmentSelect) {
                 console.error('Department select element not found');
@@ -476,11 +501,9 @@
                 departmentSelect.appendChild(option);
             });
             
-            console.log('Department dropdown populated');
         }
         
         function populateSchemeDropdown(schemes) {
-            console.log('Populating scheme dropdown with:', schemes);
             const schemeSelect = document.getElementById('scheme_filter');
             if (!schemeSelect) {
                 console.error('Scheme select element not found');
@@ -519,32 +542,21 @@
                 schemeSelect.appendChild(optgroup);
             });
             
-            console.log('Scheme dropdown populated with grouped options');
         }
         
         function showFilterRow() {
-            console.log('Showing filter columns...');
-            const departmentFilterCol = document.getElementById('departmentFilterCol');
-            const schemeFilterCol = document.getElementById('schemeFilterCol');
-            if (departmentFilterCol) {
-                departmentFilterCol.style.display = 'block';
-                console.log('Department filter column is now visible');
+            const filterRow = document.getElementById('filterRow');
+            if (filterRow) {
+                filterRow.style.display = 'block';
             } else {
-                console.error('Department filter column element not found');
-            }
-            if (schemeFilterCol) {
-                schemeFilterCol.style.display = 'block';
-                console.log('Scheme filter column is now visible');
-            } else {
-                console.error('Scheme filter column element not found');
+                console.error('Filter row element not found');
             }
         }
         
         function loadFilteredRecords() {
             const departmentFilter = document.getElementById('department_filter').value;
             const schemeFilter = document.getElementById('scheme_filter').value;
-            
-            console.log('Loading filtered records - Department:', departmentFilter, 'Scheme:', schemeFilter);
+            const talukaFilter = document.getElementById('taluka_filter').value;
             
             // Build query parameters
             const params = new URLSearchParams();
@@ -554,16 +566,17 @@
             if (schemeFilter && schemeFilter !== '') {
                 params.append('scheme_id', schemeFilter);
             }
+            if (talukaFilter && talukaFilter !== '') {
+                params.append('taluka', talukaFilter);
+            }
             
             const url = `/admin/api/filtered-records?${params.toString()}`;
-            console.log('Making API call to:', url);
             
             // Make API call to get filtered records
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        console.log('Loaded', data.records.length, 'filtered records');
                         allRecords = data.records; // Store all records for frontend filtering
                         applyFrontendFilters(); // Apply current search and filters
                     } else {
@@ -757,6 +770,7 @@
         function setupCascadingDropdowns() {
             const departmentFilter = document.getElementById('department_filter');
             const schemeFilter = document.getElementById('scheme_filter');
+            const talukaFilter = document.getElementById('taluka_filter');
             
             if (departmentFilter && schemeFilter) {
                 departmentFilter.addEventListener('change', function() {
@@ -781,6 +795,13 @@
                 
                 schemeFilter.addEventListener('change', function() {
                     // Apply filters after scheme change (this will trigger API call)
+                    applyFilters();
+                });
+            }
+            
+            if (talukaFilter) {
+                talukaFilter.addEventListener('change', function() {
+                    // Apply filters when taluka changes
                     applyFilters();
                 });
             }
@@ -921,7 +942,6 @@
             
             // Add custom data fields from current records with dynamic type detection
             if (allRecords && allRecords.length > 0) {
-                console.log('Processing allRecords for field detection:', allRecords.length, 'records');
                 const customFields = new Map(); // Use Map to store field info with type detection
                 
                 allRecords.forEach((record, recordIndex) => {

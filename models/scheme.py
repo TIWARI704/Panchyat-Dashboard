@@ -1,8 +1,19 @@
+"""
+Scheme Model
+
+This module defines the Scheme model for the Panchayat Management System.
+It handles scheme management with dynamic attribute definitions.
+"""
+
 from datetime import datetime
 from bson import ObjectId
 
-
 class Scheme:
+    """
+    Scheme model for managing schemes within departments.
+    
+    Supports dynamic attribute definitions for flexible data schemas.
+    """
     def __init__(self, name, department_id, description=None, attributes=None, is_active=True):
         self.name = name
         self.department_id = department_id
@@ -120,7 +131,6 @@ class Scheme:
                 return {'success': True, 'scheme': scheme}
             return {'success': False, 'message': 'Scheme not found'}
         except Exception as e:
-            print(f"Error getting scheme by ID: {e}")
             return {'success': False, 'message': f'Error: {str(e)}'}
 
     @staticmethod
