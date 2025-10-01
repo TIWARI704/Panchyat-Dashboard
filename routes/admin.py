@@ -1430,6 +1430,49 @@ def get_filtered_records_api():
             'message': f'Error fetching filtered records: {str(e)}'
         })
 
+@admin_bp.route('/api/dashboard-data')
+@login_required
+@superadmin_required
+def get_dashboard_data_api():
+    """API endpoint to get filtered data for smart dashboard"""
+    try:
+        # Get filter parameters from query string
+        department_id = request.args.get('department_id')
+        scheme_id = request.args.get('scheme_id')
+        taluka = request.args.get('taluka')
+        
+        # Convert to lists for the get_all_records method
+        department_ids = [department_id] if department_id else None
+        scheme_ids = [scheme_id] if scheme_id else None
+        
+        # Get filtered records with department and scheme names
+        result = PanchayatRecord.get_all_records(
+            mongo, 
+            page=1, 
+            per_page=10000,
+            department_ids=department_ids,
+            scheme_ids=scheme_ids,
+            taluka_filter=taluka
+        )
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'records': result['records'],
+                'total_records': result['total_records']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': result['message']
+            })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error fetching dashboard data: {str(e)}'
+        })
+
 @admin_bp.route('/api/download-records')
 @login_required
 @superadmin_required
