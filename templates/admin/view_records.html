@@ -1,128 +1,73 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Records - Panchayat Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        body {
-            background-color: #f8f9fa;
-            margin: 0;
-            padding: 0;
-        }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: 250px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            z-index: 1000;
-            overflow-y: auto;
-        }
-        .sidebar .nav-link {
-            color: white;
-            padding: 15px 20px;
-            border-radius: 0;
-            transition: all 0.3s;
-            display: block;
-            text-decoration: none;
-        }
-        .sidebar .nav-link:hover {
-            background-color: rgba(255,255,255,0.1);
-            color: white;
-        }
-        .sidebar .nav-link.active {
-            background-color: rgba(255,255,255,0.2);
-        }
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-        }
-        .main-content {
-            padding: 20px;
-        }
-        .table {
-            font-size: 0.9rem;
-        }
-    </style>
-</head>
-<body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-2 px-0">
-                <div class="sidebar">
-                    <div class="p-3">
-                        <h4 class="text-white">Admin Panel</h4>
-                        <small class="text-white-50">Welcome, {{ session.username }}!</small>
-                    </div>
-                    <nav class="nav flex-column">
-                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
-                            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.add_record') }}">
-                            <i class="fas fa-plus me-2"></i> Add Record
-                        </a>
-                        <a class="nav-link active" href="{{ url_for('admin.view_records') }}">
-                            <i class="fas fa-table me-2"></i> View Records
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.export_excel') }}">
-                            <i class="fas fa-download me-2"></i> Export Excel
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.manage_users') }}">
-                            <i class="fas fa-users me-2"></i> Manage Users
-                        </a>
-                        <hr class="text-white-50">
-                        <a class="nav-link" href="{{ url_for('login.logout') }}">
-                            <i class="fas fa-sign-out-alt me-2"></i> Logout
-                        </a>
-                    </nav>
-                </div>
-            </div>
+{% extends "admin/base.html" %}
 
-            <!-- Main Content -->
-            <div class="col-md-10">
-                <div class="main-content">
+{% block title %}View Records - Panchayat Management{% endblock %}
+
+{% block content %}
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h2>All Records</h2>
+    <h2>View Records</h2>
                         <a href="{{ url_for('admin.add_record') }}" class="btn btn-primary">
                             <i class="fas fa-plus me-2"></i>Add New Record
                         </a>
                     </div>
 
-                    <!-- Flash Messages -->
-                    {% with messages = get_flashed_messages(with_categories=true) %}
-                        {% if messages %}
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
-
-                    <!-- Search and Filter -->
+<!-- Search and Filter Section -->
                     <div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Search & Filter</h5>
+    </div>
                         <div class="card-body">
-                            <form method="GET">
+        <form id="searchForm" onsubmit="return false;">
                                 <div class="row">
-                                    <div class="col-md-8">
-                                        <input type="text" class="form-control" name="search" 
-                                               placeholder="Search by panchayat name, village, beneficiary, or registration number..." 
-                                               value="{{ search }}">
-                                    </div>
+            <!-- Search Box -->
                                     <div class="col-md-4">
-                                        <button type="submit" class="btn btn-primary me-2">
-                                            <i class="fas fa-search me-2"></i>Search
+                <div class="mb-3">
+                    <label for="search" class="form-label">Search Records</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   placeholder="Search in all fields...">
+                            <button class="btn btn-outline-primary" type="button" id="searchBtn">
+                                <i class="fas fa-search"></i>
                                         </button>
-                                        <a href="{{ url_for('admin.view_records') }}" class="btn btn-secondary">
+                            <button type="button" class="btn btn-outline-secondary" id="clearBtn">
                                             <i class="fas fa-times me-2"></i>Clear
-                                        </a>
+                            </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Department Filter -->
+            <div class="col-md-2" id="departmentFilterCol" style="display: none;">
+                <div class="mb-3">
+                    <label for="department_filter" class="form-label">Department</label>
+                    <select class="form-select" id="department_filter" name="department_filter">
+                        <option value="">ALL</option>
+                    </select>
+                </div>
+                    </div>
+
+            <!-- Scheme Filter -->
+            <div class="col-md-2" id="schemeFilterCol" style="display: none;">
+                <div class="mb-3">
+                    <label for="scheme_filter" class="form-label">Scheme</label>
+                    <select class="form-select" id="scheme_filter" name="scheme_filter">
+                        <option value="">ALL</option>
+                    </select>
+                </div>
+                                </div>
+            
+            <!-- Action Buttons -->
+                                    <div class="col-md-4">
+                <div class="mb-3">
+                    <label class="form-label">&nbsp;</label>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary" id="advancedFilterBtn">
+                            <i class="fas fa-filter me-2"></i>Advanced Filter
+                        </button>
+                        <button type="button" class="btn btn-outline-success" id="downloadBtn">
+                            <i class="fas fa-download me-2"></i>Download
+                                        </button>
+                    </div>
+                </div>
                                     </div>
                                 </div>
                             </form>
@@ -132,118 +77,1562 @@
                     <!-- Records Table -->
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Records ({{ total_records }} total)</h5>
-                            <small class="text-muted">Page {{ page }} of {{ total_pages }}</small>
+                            <h5 class="mb-0" id="recordCount">Records (0 total)</h5>
                         </div>
-                        <div class="card-body p-0">
-                            {% if records %}
+    <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Registration No.</th>
-                                            <th>Panchayat</th>
-                                            <th>Village</th>
-                                            <th>Beneficiary</th>
-                                            <th>Category</th>
-                                            <th>Amount</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
+            <table class="table table-striped table-hover" id="recordsTable">
+                <thead id="tableHeader">
+                    <!-- Dynamic headers will be populated here -->
                                     </thead>
-                                    <tbody>
-                                        {% for record in records %}
-                                        <tr>
-                                            <td>{{ record.registration_number or 'N/A' }}</td>
-                                            <td>{{ record.panchayat_name or 'N/A' }}</td>
-                                            <td>{{ record.village_name or 'N/A' }}</td>
-                                            <td>{{ record.beneficiary_name or 'N/A' }}</td>
-                                            <td>
-                                                <span class="badge bg-info">{{ record.category or 'N/A' }}</span>
-                                            </td>
-                                            <td>₹{{ "{:,.0f}".format(record.amount_released or 0) }}</td>
-                                            <td>
-                                                <span class="badge bg-{{ 'success' if record.house_status == 'Complete' else 'warning' }}">
-                                                    {{ record.house_status or 'N/A' }}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                {% if can_edit %}
-                                                <a href="{{ url_for('admin.edit_record', record_id=record._id) }}" 
-                                                   class="btn btn-sm btn-warning me-1">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <a href="{{ url_for('admin.delete_record', record_id=record._id) }}" 
-                                                   class="btn btn-sm btn-danger"
-                                                   onclick="return confirm('Are you sure you want to delete this record?')">
-                                                    <i class="fas fa-trash"></i>
-                                                </a>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
+                <tbody id="tableBody">
+                    <!-- Dynamic rows will be populated here -->
                                     </tbody>
                                 </table>
-                            </div>
-                            {% else %}
-                            <div class="text-center py-5">
-                                <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
-                                <h5>No Records Found</h5>
-                                <p class="text-muted">{% if search %}No records match your search criteria.{% else %}No records have been added yet.{% endif %}</p>
-                                <a href="{{ url_for('admin.add_record') }}" class="btn btn-primary">
-                                    <i class="fas fa-plus me-2"></i>Add First Record
-                                </a>
-                            </div>
-                            {% endif %}
                         </div>
                         
-                        <!-- Pagination -->
-                        {% if total_pages > 1 %}
-                        <div class="card-footer">
-                            <nav>
-                                <ul class="pagination justify-content-center mb-0">
-                                    {% if page > 1 %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('admin.view_records', page=page-1, search=search) }}">Previous</a>
-                                        </li>
-                                    {% endif %}
-                                    
-                                    {% for p in range(1, total_pages + 1) %}
-                                        {% if p == page %}
-                                            <li class="page-item active">
-                                                <span class="page-link">{{ p }}</span>
-                                            </li>
-                                        {% elif p <= 3 or p > total_pages - 3 or (p >= page - 2 and p <= page + 2) %}
-                                            <li class="page-item">
-                                                <a class="page-link" href="{{ url_for('admin.view_records', page=p, search=search) }}">{{ p }}</a>
-                                            </li>
-                                        {% elif p == 4 or p == total_pages - 3 %}
-                                            <li class="page-item disabled">
-                                                <span class="page-link">...</span>
-                                            </li>
-                                        {% endif %}
-                                    {% endfor %}
-                                    
-                                    {% if page < total_pages %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="{{ url_for('admin.view_records', page=page+1, search=search) }}">Next</a>
-                                        </li>
-                                    {% endif %}
+        <style>
+            /* Sticky action column styles */
+            #recordsTable {
+                position: relative;
+            }
+            
+            #recordsTable th:last-child,
+            #recordsTable td:last-child {
+                position: sticky;
+                right: 0;
+                background-color: #fff;
+                z-index: 10;
+                border-left: 2px solid #dee2e6;
+                min-width: 120px;
+                text-align: center;
+                box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            }
+            
+            #recordsTable thead th:last-child {
+                background-color: #f8f9fa;
+                border-left: 2px solid #dee2e6;
+                font-weight: 600;
+            }
+            
+            #recordsTable tbody tr:hover td:last-child {
+                background-color: #f8f9fa;
+            }
+            
+            /* Ensure table container has proper overflow */
+            .table-responsive {
+                overflow-x: auto;
+            }
+            
+            /* Action column specific styles */
+            .action-column {
+                white-space: nowrap;
+                padding: 8px 12px !important;
+            }
+            
+            .action-column .btn-group {
+                display: flex;
+                gap: 2px;
+            }
+            
+            .action-column .btn {
+                padding: 4px 8px;
+                font-size: 12px;
+            }
+            
+            /* Ensure data doesn't hide behind sticky column */
+            #recordsTable tbody td:not(:last-child) {
+                padding-right: 20px;
+            }
+        </style>
+                        
+        <!-- Dynamic Pagination -->
+        <nav aria-label="Records pagination" id="paginationNav" style="display: none;">
+            <ul class="pagination justify-content-center" id="paginationList">
+                <!-- Dynamic pagination will be populated here -->
                                 </ul>
                             </nav>
+        <!-- No records message will be shown dynamically -->
                         </div>
-                        {% endif %}
                     </div>
+                        
+<!-- Advanced Filter Modal -->
+<div class="modal fade" id="advancedFilterModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Advanced Filter</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+            <div class="modal-body">
+                <div id="filter-container">
+                    <!-- Dynamic filter rows will be added here -->
             </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="add-filter">
+                    <i class="fas fa-plus"></i> Add Filter
+                </button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="clear-advanced-filter">Clear All</button>
+                <button type="button" class="btn btn-primary" id="apply-advanced-filter">Apply Filter</button>
+            </div>
+        </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Edit Record Modal -->
+<div class="modal fade" id="editRecordModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Record</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editRecordForm">
+                    <input type="hidden" id="editRecordId" name="record_id">
+                    
+                    <!-- Dynamic form fields will be populated here -->
+                    <div id="editDynamicFieldsContainer">
+                        <div class="text-center text-muted py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading form fields...</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEditRecord">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
     <script>
-        function viewRecord(recordId) {
-            alert('Record details view will be implemented soon! Record ID: ' + recordId);
+    // Global variables for data management
+    let allFields = new Set(); // Store all unique fields from custom_data
+    let fieldSchemes = new Map(); // Map fields to their schemes
+    let allRecords = []; // Store all records for frontend filtering
+    let filteredRecords = []; // Store currently filtered records
+    
+    // Global function to format field values
+    function formatFieldValue(value) {
+        if (!value) return '-';
+        
+        // Handle date objects
+        if (value instanceof Date) {
+            return value.toLocaleDateString();
+        }
+        
+        // Handle date strings
+        if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+            try {
+                const date = new Date(value);
+                return date.toLocaleDateString();
+            } catch (e) {
+                return value;
+            }
+        }
+        
+        // Handle objects (like MongoDB date objects)
+        if (typeof value === 'object' && value !== null) {
+            // Check if it's a MongoDB date object
+            if (value.$date) {
+                try {
+                    const date = new Date(value.$date);
+                    return date.toLocaleDateString();
+                } catch (e) {
+                    return value.$date;
+                }
+            }
+            // For other objects, return JSON string
+            return JSON.stringify(value);
+        }
+        
+        return value;
+    }
+
+    // Global function to show no records message
+    function showNoRecordsMessage() {
+        const tbody = document.getElementById('tableBody');
+        const thead = document.getElementById('tableHeader');
+        
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-4">No records found</td></tr>';
+        }
+        
+        if (thead) {
+            thead.innerHTML = '<tr><th class="text-center py-4">No Data</th></tr>';
+        }
+    }
+
+    // Global function to update record count
+    function updateRecordCount(count) {
+        const recordCountElement = document.getElementById('recordCount');
+        if (recordCountElement) {
+            recordCountElement.textContent = `Records (${count} total)`;
+        }
+    }
+
+    // Global function to update pagination
+    function updatePagination(totalRecords) {
+        const paginationNav = document.getElementById('paginationNav');
+        const paginationList = document.getElementById('paginationList');
+        
+        if (totalRecords <= 10) { // Assuming 10 records per page
+            paginationNav.style.display = 'none';
+            return;
+        }
+        
+        paginationNav.style.display = 'block';
+        paginationList.innerHTML = '';
+        
+        const totalPages = Math.ceil(totalRecords / 10);
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = 'page-item';
+            li.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${i})">${i}</a>`;
+            paginationList.appendChild(li);
+        }
+    }
+
+    // Global function to generate table headers
+    function generateTableHeaders() {
+        const thead = document.getElementById('tableHeader');
+        if (!thead) return;
+        
+        const headerRow = document.createElement('tr');
+        
+        // Add dynamic columns for each field
+        allFields.forEach(field => {
+            const schemes = Array.from(fieldSchemes.get(field));
+            const tooltip = schemes.length > 1 ? `title="Used in: ${schemes.join(', ')}"` : '';
+            const headerText = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const th = document.createElement('th');
+            th.innerHTML = `<span ${tooltip}>${headerText}</span>`;
+            th.style.position = 'sticky';
+            th.style.top = '0';
+            th.style.backgroundColor = '#f8f9fa';
+            th.style.zIndex = '10';
+            headerRow.appendChild(th);
+        });
+        
+        // Add action column (sticky to right)
+        const actionTh = document.createElement('th');
+        actionTh.innerHTML = 'Actions';
+        actionTh.style.position = 'sticky';
+        actionTh.style.right = '0';
+        actionTh.style.backgroundColor = '#f8f9fa';
+        actionTh.style.zIndex = '10';
+        actionTh.style.borderLeft = '2px solid #dee2e6';
+        actionTh.style.minWidth = '120px';
+        actionTh.style.textAlign = 'center';
+        actionTh.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.1)';
+        headerRow.appendChild(actionTh);
+        
+        thead.innerHTML = '';
+        thead.appendChild(headerRow);
+    }
+
+    // Global function to generate table rows
+    function generateTableRows(records) {
+        const tbody = document.getElementById('tableBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        
+        records.forEach(record => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-record-id', record._id.$oid || record._id);
+            
+            // Add data cells for each field
+            allFields.forEach(field => {
+                const value = record.custom_data ? record.custom_data[field] : '';
+                const cell = document.createElement('td');
+                cell.textContent = formatFieldValue(value);
+                row.appendChild(cell);
+            });
+            
+            // Add action cell (sticky to right)
+            const actionCell = document.createElement('td');
+            actionCell.style.position = 'sticky';
+            actionCell.style.right = '0';
+            actionCell.style.backgroundColor = 'white';
+            actionCell.style.zIndex = '5';
+            actionCell.style.borderLeft = '2px solid #dee2e6';
+            actionCell.style.minWidth = '120px';
+            actionCell.style.textAlign = 'center';
+            actionCell.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.1)';
+            
+            const recordId = record._id.$oid || record._id;
+            actionCell.innerHTML = `
+                <button class="btn btn-sm btn-outline-primary me-1" onclick="editRecord('${recordId}')" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteRecord('${recordId}')" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            row.appendChild(actionCell);
+            
+            tbody.appendChild(row);
+        });
+    }
+
+    // Global function to update records table
+    function updateRecordsTable(records) {
+        console.log('Updating records table with:', records);
+        
+        // Clear existing data
+        allFields.clear();
+        fieldSchemes.clear();
+        
+        if (records.length === 0) {
+            showNoRecordsMessage();
+            return;
+        }
+        
+        // Collect all unique fields from custom_data
+        records.forEach(record => {
+            if (record.custom_data) {
+                Object.keys(record.custom_data).forEach(field => {
+                    allFields.add(field);
+                    if (!fieldSchemes.has(field)) {
+                        fieldSchemes.set(field, new Set());
+                    }
+                    fieldSchemes.get(field).add(record.scheme_name || 'Unknown');
+                });
+            }
+        });
+        
+        // Generate dynamic headers
+        generateTableHeaders();
+        
+        // Generate table rows
+        generateTableRows(records);
+        
+        // Update record count
+        updateRecordCount(records.length);
+        
+        // Show pagination if needed
+        updatePagination(records.length);
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if user is superadmin and load filter data
+        {% if session.is_superadmin %}
+        loadSuperadminFilterData();
+                                        {% endif %}
+        
+        // Function to load superadmin filter data
+        function loadSuperadminFilterData() {
+            console.log('Loading superadmin filter data...');
+            fetch('/admin/api/superadmin-filter-data')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('API Response:', data);
+                    if (data.success) {
+                        console.log('Populating dropdowns with data:', data);
+                        populateDepartmentDropdown(data.departments);
+                        populateSchemeDropdown(data.schemes);
+                        showFilterRow();
+                        loadFilteredRecords(); // Load records with current filters
+                    } else {
+                        console.error('Error loading filter data:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching filter data:', error);
+                });
+        }
+        
+        function populateDepartmentDropdown(departments) {
+            console.log('Populating department dropdown with:', departments);
+            const departmentSelect = document.getElementById('department_filter');
+            if (!departmentSelect) {
+                console.error('Department select element not found');
+                return;
+            }
+            
+            // Clear existing options except the first one
+            departmentSelect.innerHTML = '<option value="">ALL</option>';
+            
+            // Add department options
+            departments.forEach(dept => {
+                const option = document.createElement('option');
+                // Extract the actual ObjectId string from the MongoDB response
+                const deptId = dept._id.$oid || dept._id;
+                option.value = deptId;
+                option.textContent = dept.name;
+                departmentSelect.appendChild(option);
+            });
+            
+            console.log('Department dropdown populated');
+        }
+        
+        function populateSchemeDropdown(schemes) {
+            console.log('Populating scheme dropdown with:', schemes);
+            const schemeSelect = document.getElementById('scheme_filter');
+            if (!schemeSelect) {
+                console.error('Scheme select element not found');
+                return;
+            }
+            
+            // Clear existing options except the first one
+            schemeSelect.innerHTML = '<option value="">ALL</option>';
+            
+            // Group schemes by department
+            const groupedSchemes = {};
+            schemes.forEach(scheme => {
+                const deptName = scheme.department_name;
+                if (!groupedSchemes[deptName]) {
+                    groupedSchemes[deptName] = [];
+                }
+                groupedSchemes[deptName].push(scheme);
+            });
+            
+            // Add optgroups and options
+            Object.keys(groupedSchemes).forEach(deptName => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = deptName;
+                
+                groupedSchemes[deptName].forEach(scheme => {
+                    const option = document.createElement('option');
+                    // Extract the actual ObjectId strings from the MongoDB response
+                    const schemeId = scheme._id.$oid || scheme._id;
+                    const deptId = scheme.department_id.$oid || scheme.department_id;
+                    option.value = schemeId;
+                    option.textContent = scheme.name;
+                    option.setAttribute('data-department', deptId);
+                    optgroup.appendChild(option);
+                });
+                
+                schemeSelect.appendChild(optgroup);
+            });
+            
+            console.log('Scheme dropdown populated with grouped options');
+        }
+        
+        function showFilterRow() {
+            console.log('Showing filter columns...');
+            const departmentFilterCol = document.getElementById('departmentFilterCol');
+            const schemeFilterCol = document.getElementById('schemeFilterCol');
+            if (departmentFilterCol) {
+                departmentFilterCol.style.display = 'block';
+                console.log('Department filter column is now visible');
+            } else {
+                console.error('Department filter column element not found');
+            }
+            if (schemeFilterCol) {
+                schemeFilterCol.style.display = 'block';
+                console.log('Scheme filter column is now visible');
+            } else {
+                console.error('Scheme filter column element not found');
+            }
+        }
+        
+        function loadFilteredRecords() {
+            const departmentFilter = document.getElementById('department_filter').value;
+            const schemeFilter = document.getElementById('scheme_filter').value;
+            
+            console.log('Loading filtered records - Department:', departmentFilter, 'Scheme:', schemeFilter);
+            
+            // Build query parameters
+            const params = new URLSearchParams();
+            if (departmentFilter && departmentFilter !== '') {
+                params.append('department_id', departmentFilter);
+            }
+            if (schemeFilter && schemeFilter !== '') {
+                params.append('scheme_id', schemeFilter);
+            }
+            
+            const url = `/admin/api/filtered-records?${params.toString()}`;
+            console.log('Making API call to:', url);
+            
+            // Make API call to get filtered records
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Loaded', data.records.length, 'filtered records');
+                        allRecords = data.records; // Store all records for frontend filtering
+                        applyFrontendFilters(); // Apply current search and filters
+                    } else {
+                        console.error('Error loading filtered records:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching filtered records:', error);
+                });
+        }
+        
+        function applyFrontendFilters() {
+            const searchTerm = document.getElementById('search').value.toLowerCase().trim();
+            
+            // Start with all records
+            filteredRecords = [...allRecords];
+            
+            // Apply search filter
+            if (searchTerm) {
+                filteredRecords = filteredRecords.filter(record => {
+                    // Search in custom_data fields
+                    if (record.custom_data) {
+                        for (const [key, value] of Object.entries(record.custom_data)) {
+                            if (value && value.toString().toLowerCase().includes(searchTerm)) {
+                                return true;
+                            }
+                        }
+                    }
+                    
+                    // Search in other record fields
+                    const searchableFields = ['department_name', 'scheme_name', 'created_by'];
+                    for (const field of searchableFields) {
+                        if (record[field] && record[field].toLowerCase().includes(searchTerm)) {
+                            return true;
+                        }
+                    }
+                    
+                    return false;
+                });
+            }
+            
+            // Update table with filtered results
+            updateRecordsTable(filteredRecords);
+        }
+        
+        function applyFilters() {
+            loadFilteredRecords();
+        }
+        
+        
+        // Download functionality
+        function setupDownloadButton() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', function() {
+                    downloadCurrentData();
+                });
+            }
+        }
+        
+        // Search functionality
+        function setupSearchFunctionality() {
+            const searchInput = document.getElementById('search');
+            const searchBtn = document.getElementById('searchBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            // Real-time search as user types
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    applyFrontendFilters();
+                });
+            }
+            
+            // Search button click
+            if (searchBtn) {
+                searchBtn.addEventListener('click', function() {
+                    applyFrontendFilters();
+                });
+            }
+            
+            // Clear button click
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function() {
+                    searchInput.value = '';
+                    applyFrontendFilters();
+                });
+            }
+            
+            // Enter key in search input
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyFrontendFilters();
+                    }
+                });
+            }
+        }
+        
+        function downloadCurrentData() {
+            // Download the currently filtered data (frontend filtered)
+            if (filteredRecords.length === 0) {
+                alert('No data to download');
+                return;
+            }
+            
+            // Create Excel data from filtered records
+            const excelData = prepareExcelData(filteredRecords);
+            
+            // Create and download Excel file
+            downloadExcelFile(excelData, 'filtered_records.xlsx');
+        }
+        
+        function prepareExcelData(records) {
+            const excelData = [];
+            
+            // Get all unique fields from the filtered records
+            const allFields = new Set();
+            records.forEach(record => {
+                if (record.custom_data) {
+                    Object.keys(record.custom_data).forEach(field => {
+                        allFields.add(field);
+                    });
+                }
+            });
+            
+            // Prepare header row
+            const headers = ['Department', 'Scheme', 'Created By', 'Created At', 'Status'];
+            allFields.forEach(field => {
+                headers.push(field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+            });
+            
+            // Prepare data rows
+            records.forEach(record => {
+                const row = {
+                    'Department': record.department_name || '',
+                    'Scheme': record.scheme_name || '',
+                    'Created By': record.created_by || '',
+                    'Created At': record.created_at ? new Date(record.created_at).toLocaleDateString() : '',
+                    'Status': record.is_active ? 'Active' : 'Inactive'
+                };
+                
+                // Add custom data fields
+                allFields.forEach(field => {
+                    const value = record.custom_data && record.custom_data[field] ? record.custom_data[field] : '';
+                    row[field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())] = formatFieldValue(value);
+                });
+                
+                excelData.push(row);
+            });
+            
+            return { headers, data: excelData };
+        }
+        
+        function downloadExcelFile(data, filename) {
+            // Create a simple CSV download (can be enhanced to use a proper Excel library)
+            const csvContent = createCSVContent(data);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            
+            if (link.download !== undefined) {
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename.replace('.xlsx', '.csv'));
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+        
+        function createCSVContent(data) {
+            const { headers, data: rows } = data;
+            
+            // Create CSV header
+            let csvContent = headers.map(header => `"${header}"`).join(',') + '\n';
+            
+            // Create CSV rows
+            rows.forEach(row => {
+                const csvRow = headers.map(header => {
+                    const value = row[header] || '';
+                    return `"${value.toString().replace(/"/g, '""')}"`;
+                }).join(',');
+                csvContent += csvRow + '\n';
+            });
+            
+            return csvContent;
+        }
+        
+        // Simple cascading functionality - filter schemes based on selected department
+        function setupCascadingDropdowns() {
+            const departmentFilter = document.getElementById('department_filter');
+            const schemeFilter = document.getElementById('scheme_filter');
+            
+            if (departmentFilter && schemeFilter) {
+                departmentFilter.addEventListener('change', function() {
+                    const selectedDepartmentId = this.value;
+                    const schemeOptions = schemeFilter.querySelectorAll('option[data-department]');
+                    
+                    // Reset scheme filter
+                    schemeFilter.value = '';
+                    
+                    // Show/hide scheme options based on selected department
+                    schemeOptions.forEach(option => {
+                        if (!selectedDepartmentId || option.getAttribute('data-department') === selectedDepartmentId) {
+                            option.style.display = 'block';
+                        } else {
+                            option.style.display = 'none';
+                        }
+                    });
+                    
+                    // Apply filters after department change (this will trigger API call)
+                    applyFilters();
+                });
+                
+                schemeFilter.addEventListener('change', function() {
+                    // Apply filters after scheme change (this will trigger API call)
+                    applyFilters();
+                });
+            }
+        }
+        
+        // Setup cascading dropdowns after data is loaded
+        setTimeout(setupCascadingDropdowns, 1000);
+        
+        // Setup download button
+        setupDownloadButton();
+        
+        // Setup search functionality
+        setupSearchFunctionality();
+        
+        // Advanced filter functionality
+        const filterContainer = document.getElementById('filter-container');
+        const addFilterBtn = document.getElementById('add-filter');
+        const advancedFilterBtn = document.getElementById('advancedFilterBtn');
+        const applyAdvancedFilterBtn = document.getElementById('apply-advanced-filter');
+        const clearAdvancedFilterBtn = document.getElementById('clear-advanced-filter');
+        const advancedFilterModal = new bootstrap.Modal(document.getElementById('advancedFilterModal'));
+
+        // Store current filter state
+        let currentFilters = [];
+
+        // Show advanced filter modal
+        advancedFilterBtn.addEventListener('click', function() {
+            restoreFilterModal();
+            advancedFilterModal.show();
+        });
+
+        // Initialize filter modal with one row
+        function initializeFilterModal() {
+            filterContainer.innerHTML = '';
+            addFilterRow();
+        }
+
+        // Restore filter modal with saved state
+        function restoreFilterModal() {
+            filterContainer.innerHTML = '';
+            
+            if (currentFilters.length === 0) {
+                // No saved filters, initialize with one empty row
+                addFilterRow();
+            } else {
+                // Restore saved filters
+                currentFilters.forEach((filter, index) => {
+                    addFilterRow(filter, index);
+                });
+            }
+        }
+
+        // Add filter row
+        addFilterBtn.addEventListener('click', function() {
+            addFilterRow();
+        });
+
+        function addFilterRow(filterData = null, index = null) {
+            const newFilterRow = document.createElement('div');
+            newFilterRow.className = 'filter-row border p-3 mb-2 rounded';
+            
+            // Get available fields for options
+            const availableFields = getAvailableFields();
+            const fieldOptions = availableFields.map(field => 
+                `<option value="${field.key}" ${filterData && filterData.field === field.key ? 'selected' : ''}>${field.label}</option>`
+            ).join('');
+            
+            newFilterRow.innerHTML = `
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Field</label>
+                        <select class="form-select filter-field">
+                            <option value="">Select Field</option>
+                            ${fieldOptions}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Operator</label>
+                        <select class="form-select filter-operator">
+                            <option value="equals">Equals</option>
+                            <option value="contains">Contains</option>
+                            <option value="starts_with">Starts With</option>
+                            <option value="ends_with">Ends With</option>
+                            <option value="greater_than">Greater Than</option>
+                            <option value="less_than">Less Than</option>
+                            <option value="greater_equal">Greater or Equal</option>
+                            <option value="less_equal">Less or Equal</option>
+                        </select>
+                </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Value</label>
+                        <input type="text" class="form-control filter-value" placeholder="Enter value" value="${filterData ? filterData.value : ''}">
+            </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Logic</label>
+                        <select class="form-select filter-logic">
+                            <option value="and" ${filterData && filterData.logic === 'and' ? 'selected' : ''}>AND</option>
+                            <option value="or" ${filterData && filterData.logic === 'or' ? 'selected' : ''}>OR</option>
+                        </select>
+        </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-filter">
+                            <i class="fas fa-trash"></i>
+                        </button>
+    </div>
+                </div>
+            `;
+            filterContainer.appendChild(newFilterRow);
+            
+            // Add event listener for field change to update operators
+            const fieldSelect = newFilterRow.querySelector('.filter-field');
+            const operatorSelect = newFilterRow.querySelector('.filter-operator');
+            
+            // If we have filter data, set the operator and update operators
+            if (filterData) {
+                operatorSelect.value = filterData.operator;
+                updateOperatorsForField(filterData.field, operatorSelect);
+                // Set the operator again after updating options
+                operatorSelect.value = filterData.operator;
+            }
+            
+            fieldSelect.addEventListener('change', function() {
+                updateOperatorsForField(this.value, operatorSelect);
+            });
+            
+            updateRemoveButtons();
+        }
+
+        function getAvailableFields() {
+            const fields = [
+                { key: 'department_name', label: 'Department', type: 'string' },
+                { key: 'scheme_name', label: 'Scheme', type: 'string' },
+                { key: 'created_by', label: 'Created By', type: 'string' },
+                { key: 'created_at', label: 'Created At', type: 'date' },
+                { key: 'is_active', label: 'Status', type: 'boolean' }
+            ];
+            
+            // Add custom data fields from current records with dynamic type detection
+            if (allRecords && allRecords.length > 0) {
+                console.log('Processing allRecords for field detection:', allRecords.length, 'records');
+                const customFields = new Map(); // Use Map to store field info with type detection
+                
+                allRecords.forEach((record, recordIndex) => {
+                    if (record.custom_data) {
+                        console.log(`Record ${recordIndex} custom_data:`, record.custom_data);
+                        Object.keys(record.custom_data).forEach(field => {
+                            const value = record.custom_data[field];
+                            console.log(`Field: ${field}, Value:`, value, 'Type:', typeof value);
+                            
+                            if (!customFields.has(field)) {
+                                customFields.set(field, {
+                                    key: field,
+                                    label: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                                    type: detectDataType(value),
+                                    values: new Set()
+                                });
+                            }
+                            
+                            // Store unique values for better type detection
+                            if (value !== null && value !== undefined && value !== '') {
+                                customFields.get(field).values.add(value);
+                            }
+                        });
+                    }
+                });
+                
+                // Refine type detection based on all values for each field
+                customFields.forEach((fieldInfo, field) => {
+                    console.log(`Field: ${field}, Values:`, Array.from(fieldInfo.values));
+                    const refinedType = refineDataType(fieldInfo.values);
+                    console.log(`Refined type for ${field}:`, refinedType);
+                    fields.push({ 
+                        key: `custom_data.${field}`, 
+                        label: fieldInfo.label, 
+                        type: refinedType 
+                    });
+                });
+            }
+            
+            console.log('Final available fields:', fields);
+            return fields;
+        }
+        
+        function detectDataType(value) {
+            if (value === null || value === undefined || value === '') {
+                return 'string';
+            }
+            
+            console.log('Detecting type for value:', value, 'Type:', typeof value);
+            
+            // Check if it's a date (handle MongoDB date objects and date strings)
+            if (value instanceof Date) {
+                console.log('Detected as Date object');
+                return 'date';
+            }
+            
+            // Handle MongoDB date format: {$date: "2023-01-01T00:00:00.000Z"}
+            if (typeof value === 'object' && value.$date) {
+                console.log('Detected as MongoDB date');
+                return 'date';
+            }
+            
+            // Check for date strings
+            if (typeof value === 'string') {
+                // Try to parse as date
+                const dateValue = new Date(value);
+                if (!isNaN(dateValue.getTime()) && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+                    console.log('Detected as date string:', value);
+                    return 'date';
+                }
+            }
+            
+            // Check if it's a boolean
+            if (typeof value === 'boolean') {
+                console.log('Detected as boolean');
+                return 'boolean';
+            }
+            
+            // Check for boolean strings
+            if (typeof value === 'string' && (value.toLowerCase() === 'true' || value.toLowerCase() === 'false')) {
+                console.log('Detected as boolean string:', value);
+                return 'boolean';
+            }
+            
+            // Check if it's a number
+            if (typeof value === 'number') {
+                console.log('Detected as number');
+                return 'number';
+            }
+            
+            // Check for numeric strings (but not dates)
+            if (typeof value === 'string' && !isNaN(parseFloat(value)) && isFinite(value) && !value.includes('-') && !value.includes('/')) {
+                console.log('Detected as numeric string:', value);
+                return 'number';
+            }
+            
+            // Default to string
+            console.log('Defaulting to string for:', value);
+            return 'string';
+        }
+        
+        function refineDataType(values) {
+            if (values.size === 0) {
+                return 'string';
+            }
+            
+            const valueArray = Array.from(values);
+            let typeCounts = {
+                string: 0,
+                number: 0,
+                date: 0,
+                boolean: 0
+            };
+            
+            console.log('Refining type for values:', valueArray);
+            
+            // Count types for all values
+            valueArray.forEach(value => {
+                const type = detectDataType(value);
+                typeCounts[type]++;
+                console.log(`Value: ${value} -> Type: ${type}`);
+            });
+            
+            console.log('Type counts:', typeCounts);
+            
+            // If we have a clear majority type, use it
+            const totalValues = valueArray.length;
+            const maxCount = Math.max(...Object.values(typeCounts));
+            const maxType = Object.keys(typeCounts).find(type => typeCounts[type] === maxCount);
+            
+            // If the majority type represents more than 70% of values, use it
+            if (maxCount / totalValues > 0.7) {
+                console.log(`Using majority type: ${maxType} (${maxCount}/${totalValues})`);
+                return maxType;
+            }
+            
+            // Determine if it's an enum (limited string values)
+            if (typeCounts.string > 0 && values.size <= 10) {
+                // Check if all string values are from a limited set
+                const stringValues = valueArray.filter(v => detectDataType(v) === 'string');
+                const uniqueStrings = new Set(stringValues);
+                
+                if (uniqueStrings.size <= 10 && uniqueStrings.size < valueArray.length * 0.8) {
+                    console.log('Detected as enum with unique strings:', uniqueStrings);
+                    return 'enum';
+                }
+            }
+            
+            // Return the most common type as fallback
+            console.log(`Using fallback type: ${maxType}`);
+            return maxType;
+        }
+
+        function updateOperatorsForField(fieldKey, operatorSelect) {
+            const field = getAvailableFields().find(f => f.key === fieldKey);
+            if (!field) {
+                console.log('Field not found for key:', fieldKey);
+                return;
+            }
+            
+            console.log('Updating operators for field:', field);
+            let operators = [];
+            
+            switch (field.type) {
+                case 'string':
+                    operators = [
+                        { value: 'equals', label: 'Equals' },
+                        { value: 'contains', label: 'Contains' },
+                        { value: 'starts_with', label: 'Starts With' },
+                        { value: 'ends_with', label: 'Ends With' },
+                        { value: 'not_equals', label: 'Not Equals' }
+                    ];
+                    break;
+                case 'number':
+                case 'int':
+                case 'float':
+                    operators = [
+                        { value: 'equals', label: 'Equals' },
+                        { value: 'greater_than', label: 'Greater Than' },
+                        { value: 'less_than', label: 'Less Than' },
+                        { value: 'greater_equal', label: 'Greater or Equal' },
+                        { value: 'less_equal', label: 'Less or Equal' },
+                        { value: 'not_equals', label: 'Not Equals' }
+                    ];
+                    break;
+                case 'date':
+                    operators = [
+                        { value: 'equals', label: 'Equals' },
+                        { value: 'greater_than', label: 'After' },
+                        { value: 'less_than', label: 'Before' },
+                        { value: 'greater_equal', label: 'On or After' },
+                        { value: 'less_equal', label: 'On or Before' }
+                    ];
+                    break;
+                case 'boolean':
+                    operators = [
+                        { value: 'equals', label: 'Equals' }
+                    ];
+                    break;
+                case 'enum':
+                    operators = [
+                        { value: 'equals', label: 'Equals' },
+                        { value: 'not_equals', label: 'Not Equals' }
+                    ];
+                    break;
+                default:
+                    operators = [
+                        { value: 'equals', label: 'Equals' },
+                        { value: 'contains', label: 'Contains' },
+                        { value: 'not_equals', label: 'Not Equals' }
+                    ];
+            }
+            
+            console.log('Setting operators for field type:', field.type, 'Operators:', operators);
+            operatorSelect.innerHTML = operators.map(op => 
+                `<option value="${op.value}">${op.label}</option>`
+            ).join('');
+        }
+
+        // Remove filter row
+        filterContainer.addEventListener('click', function(e) {
+            if (e.target.closest('.remove-filter')) {
+                e.target.closest('.filter-row').remove();
+                updateRemoveButtons();
+            }
+        });
+
+        // Apply advanced filter
+        applyAdvancedFilterBtn.addEventListener('click', function() {
+            const filters = [];
+            const filterRows = filterContainer.querySelectorAll('.filter-row');
+            
+            filterRows.forEach((row, index) => {
+                const field = row.querySelector('.filter-field').value;
+                const operator = row.querySelector('.filter-operator').value;
+                const value = row.querySelector('.filter-value').value;
+                const logic = row.querySelector('.filter-logic').value;
+                
+                if (field && value) {
+                    filters.push({
+                        field: field,
+                        operator: operator,
+                        value: value,
+                        logic: index === 0 ? null : logic
+                    });
+                }
+            });
+            
+            if (filters.length > 0) {
+                // Save current filter state
+                currentFilters = filters;
+                
+                // Apply filters to the current data (frontend filtering)
+                applyFiltersToData(filters);
+                advancedFilterModal.hide();
+            } else {
+                alert('Please add at least one filter condition');
+            }
+        });
+
+        // Clear advanced filters
+        clearAdvancedFilterBtn.addEventListener('click', function() {
+            // Clear saved filter state
+            currentFilters = [];
+            
+            // Clear all filter rows
+            filterContainer.innerHTML = '';
+            
+            // Reset to show all records
+            filteredRecords = [...allRecords];
+            updateRecordsTable(filteredRecords);
+            updateRecordCount(filteredRecords.length);
+            updatePagination(filteredRecords.length);
+        });
+
+        function applyFiltersToData(filters) {
+            if (!allRecords || allRecords.length === 0) {
+                filteredRecords = [];
+                updateRecordsTable(filteredRecords);
+                return;
+            }
+            
+            let result = [...allRecords];
+            
+            filters.forEach((filter, index) => {
+                const { field, operator, value, logic } = filter;
+                
+                if (index === 0) {
+                    // First filter - apply directly
+                    result = result.filter(record => evaluateFilter(record, field, operator, value));
+                } else {
+                    // Subsequent filters - apply with logic
+                    const newResult = allRecords.filter(record => evaluateFilter(record, field, operator, value));
+                    
+                    if (logic === 'and') {
+                        result = result.filter(record => newResult.includes(record));
+                    } else if (logic === 'or') {
+                        result = [...new Set([...result, ...newResult])];
+                    }
+                }
+            });
+            
+            filteredRecords = result;
+            updateRecordsTable(filteredRecords);
+            updateRecordCount(filteredRecords.length);
+            updatePagination(filteredRecords.length);
+        }
+
+        function evaluateFilter(record, field, operator, value) {
+            let recordValue;
+            
+            // Get value from record
+            if (field.startsWith('custom_data.')) {
+                const customField = field.replace('custom_data.', '');
+                recordValue = record.custom_data && record.custom_data[customField] ? record.custom_data[customField] : '';
+            } else {
+                recordValue = record[field] || '';
+            }
+            
+            // Convert to string for comparison
+            const strValue = String(recordValue).toLowerCase();
+            const strFilterValue = String(value).toLowerCase();
+            
+            switch (operator) {
+                case 'equals':
+                    return strValue === strFilterValue;
+                case 'contains':
+                    return strValue.includes(strFilterValue);
+                case 'starts_with':
+                    return strValue.startsWith(strFilterValue);
+                case 'ends_with':
+                    return strValue.endsWith(strFilterValue);
+                case 'not_equals':
+                    return strValue !== strFilterValue;
+                case 'greater_than':
+                    return parseFloat(recordValue) > parseFloat(value);
+                case 'less_than':
+                    return parseFloat(recordValue) < parseFloat(value);
+                case 'greater_equal':
+                    return parseFloat(recordValue) >= parseFloat(value);
+                case 'less_equal':
+                    return parseFloat(recordValue) <= parseFloat(value);
+                default:
+                    return strValue.includes(strFilterValue);
+            }
+        }
+
+        function updateRemoveButtons() {
+            const filterRows = filterContainer.querySelectorAll('.filter-row');
+            filterRows.forEach((row, index) => {
+                const removeBtn = row.querySelector('.remove-filter');
+                if (filterRows.length > 1) {
+                    removeBtn.style.display = 'block';
+                } else {
+                    removeBtn.style.display = 'none';
+                }
+            });
+        }
+    });
+
+    // Delete record function
+    function deleteRecord(recordId) {
+        // Show confirmation dialog
+        if (confirm('Are you sure you want to delete this record? This action cannot be undone.')) {
+            // Make AJAX request to delete record
+            fetch(`/admin/delete-record/${recordId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showAlert('Record deleted successfully!', 'success');
+                    
+                    // Find the row by data attribute
+                    const tableBody = document.getElementById('tableBody');
+                    const targetRow = tableBody.querySelector(`tr[data-record-id="${recordId}"]`);
+                    
+                    if (targetRow) {
+                        console.log('Found row to delete:', targetRow);
+                        
+                        // Add fade out animation
+                        targetRow.style.transition = 'all 0.3s ease';
+                        targetRow.style.opacity = '0';
+                        targetRow.style.transform = 'translateX(-100%)';
+                        
+                        // Remove the row after animation
+                        setTimeout(() => {
+                            targetRow.remove();
+                            console.log('Row removed from DOM');
+                            
+                            // Update total count
+                            const currentCount = parseInt(document.getElementById('recordCount').textContent.match(/\d+/)[0]);
+                            document.getElementById('recordCount').textContent = `Records (${currentCount - 1} total)`;
+                            
+                            // Force browser to update the display
+                            tableBody.style.display = 'none';
+                            tableBody.offsetHeight; // Trigger reflow
+                            tableBody.style.display = '';
+                            
+                        }, 300);
+                    } else {
+                        console.log('Row not found, refreshing table...');
+                        // Fallback: refresh the entire table
+                        loadFilteredRecords();
+                    }
+                    
+                } else {
+                    // Show error message
+                    showAlert('Error deleting record: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting record:', error);
+                showAlert('Error deleting record. Please try again.', 'danger');
+            });
+        }
+    }
+
+
+    // Show alert function
+    function showAlert(message, type = 'info') {
+        // Create alert element with floating positioning
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+        `;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Add to body
+        document.body.appendChild(alertDiv);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    // Edit record function
+    function editRecord(recordId) {
+        console.log('Editing record:', recordId);
+        
+        // Set the record ID in the hidden field
+        document.getElementById('editRecordId').value = recordId;
+        
+        // Show the modal
+        const editModal = new bootstrap.Modal(document.getElementById('editRecordModal'));
+        editModal.show();
+        
+        // Load the record data and generate form fields
+        loadRecordForEdit(recordId);
+    }
+
+    // Load record data for editing
+    function loadRecordForEdit(recordId) {
+        const container = document.getElementById('editDynamicFieldsContainer');
+        
+        // Show loading state
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading record data...</p>
+            </div>
+        `;
+        
+        // Find the record in allRecords
+        const record = allRecords.find(r => {
+            const id = r._id.$oid || r._id;
+            return id === recordId;
+        });
+        
+        if (!record) {
+            container.innerHTML = '<div class="alert alert-danger">Record not found in current data!</div>';
+            return;
+        }
+        
+        // Get scheme information
+        let schemeId = record.scheme_id;
+        
+        // Handle ObjectId format - extract string value
+        if (schemeId && typeof schemeId === 'object') {
+            schemeId = schemeId.$oid || schemeId.toString();
+        }
+        
+        console.log('Record scheme_id:', schemeId, 'Type:', typeof schemeId);
+        
+        if (!schemeId) {
+            container.innerHTML = '<div class="alert alert-danger">Scheme information not found!</div>';
+            return;
+        }
+        
+        // Fetch scheme form fields
+        console.log('Fetching scheme fields for ID:', schemeId);
+        fetch(`/admin/api/scheme-form-fields/${schemeId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    generateEditFormFields(data.form_fields, record.custom_data || {});
+                } else {
+                    container.innerHTML = '<div class="alert alert-danger">Error loading form fields: ' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading scheme fields:', error);
+                container.innerHTML = '<div class="alert alert-danger">Error loading form fields: ' + error.message + '</div>';
+            });
+    }
+
+    // Generate edit form fields
+    function generateEditFormFields(attributes, customData) {
+        const container = document.getElementById('editDynamicFieldsContainer');
+        
+        if (!attributes || attributes.length === 0) {
+            container.innerHTML = '<div class="alert alert-warning">No form fields available for this record.</div>';
+            return;
+        }
+        
+        let formHTML = '<div class="row">';
+        
+        attributes.forEach((attr, index) => {
+            const fieldName = attr.name;
+            const fieldLabel = attr.label;
+            const fieldType = attr.type;
+            const fieldValue = customData[fieldName] || '';
+            
+            formHTML += `
+                <div class="col-md-6 mb-3">
+                    <label for="edit_${fieldName}" class="form-label">${fieldLabel} *</label>
+                    ${generateEditFieldHTML(fieldName, fieldType, fieldValue, attr.options)}
+                </div>
+            `;
+        });
+        
+        formHTML += '</div>';
+        container.innerHTML = formHTML;
+    }
+
+    // Generate HTML for different field types in edit form
+    function generateEditFieldHTML(fieldName, fieldType, fieldValue, options = []) {
+        const inputId = `edit_${fieldName}`;
+        
+        switch (fieldType) {
+            case 'string':
+                return `<input type="text" class="form-control" id="${inputId}" name="${fieldName}" value="${fieldValue}" required>`;
+            
+            case 'int':
+            case 'number':
+                return `<input type="number" class="form-control" id="${inputId}" name="${fieldName}" value="${fieldValue}" required>`;
+            
+            case 'float':
+                return `<input type="number" class="form-control" id="${inputId}" name="${fieldName}" value="${fieldValue}" step="0.01" required>`;
+            
+            case 'date':
+                let dateValue = '';
+                if (fieldValue) {
+                    try {
+                        // Handle different date formats
+                        let date;
+                        if (typeof fieldValue === 'object' && fieldValue.$date) {
+                            date = new Date(fieldValue.$date);
+                        } else if (typeof fieldValue === 'string') {
+                            date = new Date(fieldValue);
+                        } else {
+                            date = new Date(fieldValue);
+                        }
+                        
+                        if (!isNaN(date.getTime())) {
+                            dateValue = date.toISOString().split('T')[0];
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing date:', fieldValue, e);
+                        dateValue = '';
+                    }
+                }
+                return `<input type="date" class="form-control" id="${inputId}" name="${fieldName}" value="${dateValue}" required>`;
+            
+            case 'boolean':
+                const checked = fieldValue === true || fieldValue === 'true' || fieldValue === '1' ? 'checked' : '';
+                return `
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="${inputId}" name="${fieldName}" ${checked}>
+                        <label class="form-check-label" for="${inputId}">Yes</label>
+                    </div>
+                `;
+            
+            case 'enum':
+                let optionsHTML = '<option value="">Select an option</option>';
+                options.forEach(option => {
+                    const selected = fieldValue === option ? 'selected' : '';
+                    optionsHTML += `<option value="${option}" ${selected}>${option}</option>`;
+                });
+                return `<select class="form-select" id="${inputId}" name="${fieldName}" required>${optionsHTML}</select>`;
+            
+            default:
+                return `<input type="text" class="form-control" id="${inputId}" name="${fieldName}" value="${fieldValue}" required>`;
+        }
+    }
+
+    // Save edit record
+    function saveEditRecord() {
+        const recordId = document.getElementById('editRecordId').value;
+        const form = document.getElementById('editRecordForm');
+        const formData = new FormData(form);
+        
+        // Convert FormData to object, removing 'edit_' prefix from field names
+        const updateData = {};
+        for (let [key, value] of formData.entries()) {
+            if (key !== 'record_id') {
+                // Remove 'edit_' prefix from field names
+                const fieldName = key.startsWith('edit_') ? key.substring(5) : key;
+                updateData[fieldName] = value;
+            }
+        }
+        
+        console.log('Sending update data:', updateData);
+        
+        // Make AJAX request to update record
+        fetch(`/admin/api/update-record/${recordId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updateData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Update response:', data);
+            if (data.success) {
+                showAlert('Record updated successfully!', 'success');
+                
+                // Close modal
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editRecordModal'));
+                editModal.hide();
+                
+                // Update the record in allRecords array
+                const recordIndex = allRecords.findIndex(r => {
+                    const id = r._id.$oid || r._id;
+                    return id === recordId;
+                });
+                
+                if (recordIndex !== -1) {
+                    // Update the record data with the processed data
+                    allRecords[recordIndex].custom_data = updateData;
+                    allRecords[recordIndex].updated_at = new Date().toISOString();
+                    
+                    // Update filteredRecords as well
+                    const filteredIndex = filteredRecords.findIndex(r => {
+                        const id = r._id.$oid || r._id;
+                        return id === recordId;
+                    });
+                    
+                    if (filteredIndex !== -1) {
+                        filteredRecords[filteredIndex].custom_data = updateData;
+                        filteredRecords[filteredIndex].updated_at = new Date().toISOString();
+                    }
+                    
+                    // Update the table display
+                    updateRecordsTable(filteredRecords);
+                }
+                
+            } else {
+                showAlert('Error updating record: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error updating record:', error);
+            showAlert('Error updating record. Please try again.', 'danger');
+        });
+    }
+
+    // Setup edit record event listeners
+    document.getElementById('saveEditRecord').addEventListener('click', saveEditRecord);
+
+    // Select all functionality
+    function selectAll() {
+        document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        document.getElementById('selectAllCheckbox').checked = true;
+    }
+
+    function deselectAll() {
+        document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        document.getElementById('selectAllCheckbox').checked = false;
+    }
+
+    function toggleSelectAll() {
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        document.querySelectorAll('.record-checkbox').forEach(checkbox => {
+            checkbox.checked = selectAllCheckbox.checked;
+        });
         }
     </script>
-</body>
-</html>
+{% endblock %}

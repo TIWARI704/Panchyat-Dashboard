@@ -1,0 +1,124 @@
+from datetime import datetime
+from bson import ObjectId
+
+
+class Department:
+    def __init__(self, name, description=None, is_active=True):
+        self.name = name
+        self.description = description
+        self.is_active = is_active
+        self.created_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
+
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'description': self.description,
+            'is_active': self.is_active,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
+
+    @staticmethod
+    def create_department(mongo, department_data):
+        """Create a new department"""
+        try:
+            # Check if department name already exists
+            existing_department = mongo.db.departments.find_one({
+                'name': department_data.get('name')
+            })
+            
+            if existing_department:
+                return {'success': False, 'message': 'Department name already exists'}
+            
+            # Create new department
+            department = Department(
+                name=department_data.get('name'),
+                description=department_data.get('description'),
+                is_active=department_data.get('is_active', True)
+            )
+            
+            result = mongo.db.departments.insert_one(department.to_dict())
+            
+            if result.inserted_id:
+                return {'success': True, 'message': 'Department created successfully', 'department_id': str(result.inserted_id)}
+            else:
+                return {'success': False, 'message': 'Failed to create department'}
+                
+        except Exception as e:
+            return {'success': False, 'message': f'Error creating department: {str(e)}'}
+
+    @staticmethod
+    def get_all_departments(mongo, active_only=True):
+        """Get all departments"""
+        try:
+            query = {}
+            if active_only:
+                query['is_active'] = True
+            
+            departments = list(mongo.db.departments.find(query).sort('name', 1))
+            return {
+                'success': True,
+                'departments': departments
+            }
+        except Exception as e:
+            return {'success': False, 'message': f'Error fetching departments: {str(e)}'}
+
+    @staticmethod
+    def get_department_by_id(mongo, department_id):
+        """Get department by ID"""
+        try:
+            department = mongo.db.departments.find_one({'_id': ObjectId(department_id)})
+            return department
+        except Exception as e:
+            print(f"Error getting department by ID: {e}")
+            return None
+
+    @staticmethod
+    def update_department(mongo, department_id, update_data):
+        """Update department"""
+        try:
+            # Check if name is being updated and if it already exists
+            if 'name' in update_data:
+                existing_department = mongo.db.departments.find_one({
+                    'name': update_data['name'],
+                    '_id': {'$ne': ObjectId(department_id)}
+                })
+                if existing_department:
+                    return {'success': False, 'message': 'Department name already exists'}
+            
+            update_data['updated_at'] = datetime.utcnow()
+            result = mongo.db.departments.update_one(
+                {'_id': ObjectId(department_id)},
+                {'$set': update_data}
+            )
+            
+            if result.modified_count > 0:
+                return {'success': True, 'message': 'Department updated successfully'}
+            else:
+                return {'success': False, 'message': 'No changes made to department'}
+                
+        except Exception as e:
+            return {'success': False, 'message': f'Error updating department: {str(e)}'}
+
+    @staticmethod
+    def delete_department(mongo, department_id):
+        """Soft delete department"""
+        try:
+            # Check if department has schemes
+            schemes_count = mongo.db.schemes.count_documents({'department_id': ObjectId(department_id), 'is_active': True})
+            if schemes_count > 0:
+                return {'success': False, 'message': f'Cannot delete department. It has {schemes_count} active scheme(s).'}
+            
+            result = mongo.db.departments.update_one(
+                {'_id': ObjectId(department_id)},
+                {'$set': {'is_active': False, 'updated_at': datetime.utcnow()}}
+            )
+            
+            if result.modified_count > 0:
+                return {'success': True, 'message': 'Department deleted successfully'}
+            else:
+                return {'success': False, 'message': 'Department not found or could not be deleted'}
+                
+        except Exception as e:
+            return {'success': False, 'message': f'Error deleting department: {str(e)}'}

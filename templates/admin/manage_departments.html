@@ -1,0 +1,912 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Departments & Schemes - Panchayat Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Manage Departments & Schemes</h2>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Departments & Schemes</h5>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createDepartmentModal">
+            <i class="fas fa-plus"></i> Create Department
+        </button>
+    </div>
+    <div class="card-body">
+        {% if departments %}
+            <div class="accordion" id="departmentsAccordion">
+                {% for department in departments %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading{{ loop.index }}">
+                        <button class="accordion-button {% if department._id|string != open_department_id %}collapsed{% endif %}" 
+                                type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#collapse{{ loop.index }}" 
+                                aria-expanded="{% if department._id|string == open_department_id %}true{% else %}false{% endif %}" 
+                                aria-controls="collapse{{ loop.index }}">
+                            <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                <div>
+                                    <strong>{{ department.name }}</strong>
+                                    <span class="badge {% if department.is_active %}bg-success{% else %}bg-danger{% endif %} ms-2">
+                                        {% if department.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </div>
+                                <div class="text-muted small">
+                                    {{ department.description or 'No description' }}
+                                </div>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="collapse{{ loop.index }}" 
+                         class="accordion-collapse collapse {% if department._id|string == open_department_id %}show{% endif %}" 
+                         aria-labelledby="heading{{ loop.index }}" 
+                         data-bs-parent="#departmentsAccordion">
+                        <div class="accordion-body">
+                            <!-- Department Actions -->
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">Schemes in {{ department.name }}</h6>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-2" 
+                                            data-bs-toggle="modal" data-bs-target="#editDepartmentModal" 
+                                            data-department-id="{{ department._id }}" 
+                                            data-department-name="{{ department.name }}" 
+                                            data-department-description="{{ department.description or '' }}">
+                                        <i class="fas fa-edit"></i> Edit Department
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-success" 
+                                            data-bs-toggle="modal" data-bs-target="#createSchemeModal" 
+                                            data-department-id="{{ department._id }}" 
+                                            data-department-name="{{ department.name }}">
+                                        <i class="fas fa-plus"></i> Add Scheme
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Schemes List -->
+                            <div id="schemes-{{ department._id }}">
+                                <div class="text-center py-3">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading schemes...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <p class="text-muted">No departments found. Create your first department to get started.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Department Modal -->
+<div class="modal fade" id="createDepartmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('admin.create_department') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Department Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Department Modal -->
+<div class="modal fade" id="editDepartmentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="editDepartmentForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Department</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Department Name *</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Scheme Modal -->
+<div class="modal fade" id="createSchemeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" id="createSchemeForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Scheme</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="scheme_name" class="form-label">Scheme Name *</label>
+                                <input type="text" class="form-control" id="scheme_name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="scheme_department" class="form-label">Department *</label>
+                                <input type="text" class="form-control" id="scheme_department" readonly>
+                                <input type="hidden" id="scheme_department_id" name="department_id">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="scheme_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="scheme_description" name="description" rows="2"></textarea>
+                    </div>
+                    
+                    <!-- Schema Configuration -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="use_default_schema" checked>
+                            <label class="form-check-label" for="use_default_schema">
+                                <strong>Use Default Schema</strong>
+                                <small class="text-muted d-block">Use the standard panchayat record schema with all default fields</small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Schema Playground -->
+                    <div id="schema_playground" style="display: none;">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Custom Schema Configuration</h6>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger me-2" id="delete_all_attributes">
+                                        <i class="fas fa-trash"></i> Delete All
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="add_attribute">
+                                        <i class="fas fa-plus"></i> Add Field
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="attributes_list">
+                                    <!-- Default attributes will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="scheme_attributes" name="attributes" value="[]">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Scheme</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Scheme Modal -->
+<div class="modal fade" id="editSchemeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="POST" id="editSchemeForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Scheme</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_scheme_name" class="form-label">Scheme Name *</label>
+                                <input type="text" class="form-control" id="edit_scheme_name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_scheme_department" class="form-label">Department *</label>
+                                <input type="text" class="form-control" id="edit_scheme_department" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_scheme_description" class="form-label">Description</label>
+                        <textarea class="form-control" id="edit_scheme_description" name="description" rows="2"></textarea>
+                    </div>
+                    
+                    <!-- Schema Configuration -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="edit_use_default_schema">
+                            <label class="form-check-label" for="edit_use_default_schema">
+                                <strong>Use Default Schema</strong>
+                                <small class="text-muted d-block">Use the standard panchayat record schema with all default fields</small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Schema Playground -->
+                    <div id="edit_schema_playground" style="display: none;">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Custom Schema Configuration</h6>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger me-2" id="edit_delete_all_attributes">
+                                        <i class="fas fa-trash"></i> Delete All
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="edit_add_attribute">
+                                        <i class="fas fa-plus"></i> Add Field
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="edit_attributes_list">
+                                    <!-- Existing attributes will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="edit_scheme_attributes" name="attributes" value="[]">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Scheme</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load schemes for each department when accordion opens and update URL
+    const accordionCollapses = document.querySelectorAll('.accordion-collapse');
+    let currentlyOpenDepartment = null;
+    
+    accordionCollapses.forEach(collapse => {
+        const departmentId = collapse.closest('.accordion-item').querySelector('[data-department-id]')?.getAttribute('data-department-id');
+        
+        if (departmentId) {
+            // Listen for Bootstrap collapse events
+            collapse.addEventListener('show.bs.collapse', function() {
+                // Opening accordion - load schemes and update URL
+                loadSchemesForDepartment(departmentId);
+                currentlyOpenDepartment = departmentId;
+                updateURLWithDepartment(departmentId);
+            });
+            
+            collapse.addEventListener('hide.bs.collapse', function() {
+                // Only remove from URL if this is the currently open department
+                if (currentlyOpenDepartment === departmentId) {
+                    // Check if any other accordion is open after this one closes
+                    setTimeout(() => {
+                        const openAccordion = document.querySelector('.accordion-collapse.show');
+                        if (openAccordion) {
+                            // Another accordion is open, get its department ID
+                            const openDepartmentId = openAccordion.closest('.accordion-item').querySelector('[data-department-id]')?.getAttribute('data-department-id');
+                            if (openDepartmentId && openDepartmentId !== departmentId) {
+                                currentlyOpenDepartment = openDepartmentId;
+                                updateURLWithDepartment(openDepartmentId);
+                            }
+                        } else {
+                            // No accordion is open, remove from URL
+                            currentlyOpenDepartment = null;
+                            updateURLWithDepartment(null);
+                        }
+                    }, 50); // Small delay to let other events fire
+                }
+            });
+        }
+    });
+    
+    // Load schemes for the open department on page load
+    {% if open_department_id %}
+    const openDepartmentId = '{{ open_department_id }}';
+    if (openDepartmentId) {
+        currentlyOpenDepartment = openDepartmentId;
+        loadSchemesForDepartment(openDepartmentId);
+    }
+    {% endif %}
+    
+    // Edit Department Modal
+    const editDepartmentModal = document.getElementById('editDepartmentModal');
+    editDepartmentModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const departmentId = button.getAttribute('data-department-id');
+        const departmentName = button.getAttribute('data-department-name');
+        const departmentDescription = button.getAttribute('data-department-description');
+        
+        document.getElementById('edit_name').value = departmentName;
+        document.getElementById('edit_description').value = departmentDescription;
+        document.getElementById('editDepartmentForm').action = `/admin/edit-department/${departmentId}`;
+    });
+    
+    // Create Scheme Modal
+    const createSchemeModal = document.getElementById('createSchemeModal');
+    createSchemeModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const departmentId = button.getAttribute('data-department-id');
+        const departmentName = button.getAttribute('data-department-name');
+        
+        document.getElementById('scheme_department').value = departmentName;
+        document.getElementById('scheme_department_id').value = departmentId;
+        document.getElementById('createSchemeForm').action = '/admin/create-scheme';
+        
+        // Reset form
+        document.getElementById('scheme_name').value = '';
+        document.getElementById('scheme_description').value = '';
+        document.getElementById('use_default_schema').checked = true;
+        document.getElementById('schema_playground').style.display = 'none';
+        populateDefaultAttributes();
+    });
+    
+    // Edit Scheme Modal
+    const editSchemeModal = document.getElementById('editSchemeModal');
+    editSchemeModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const schemeId = button.getAttribute('data-scheme-id');
+        const schemeName = button.getAttribute('data-scheme-name');
+        const schemeDescription = button.getAttribute('data-scheme-description');
+        const departmentName = button.getAttribute('data-department-name');
+        const attributes = JSON.parse(button.getAttribute('data-attributes') || '[]');
+        
+        document.getElementById('edit_scheme_name').value = schemeName;
+        document.getElementById('edit_scheme_description').value = schemeDescription;
+        document.getElementById('edit_scheme_department').value = departmentName;
+        document.getElementById('editSchemeForm').action = `/admin/edit-scheme/${schemeId}`;
+        
+        // Check if using default schema
+        const isDefaultSchema = attributes.length === 0;
+        document.getElementById('edit_use_default_schema').checked = isDefaultSchema;
+        document.getElementById('edit_schema_playground').style.display = isDefaultSchema ? 'none' : 'block';
+        
+        if (!isDefaultSchema) {
+            populateEditAttributes(attributes);
+        } else {
+            populateDefaultAttributes('edit_');
+        }
+    });
+    
+    // Toggle schema playground
+    document.getElementById('use_default_schema').addEventListener('change', function() {
+        const playground = document.getElementById('schema_playground');
+        playground.style.display = this.checked ? 'none' : 'block';
+        
+        if (!this.checked) {
+            populateDefaultAttributes();
+        }
+        updateSchemaValidation();
+    });
+    
+    document.getElementById('edit_use_default_schema').addEventListener('change', function() {
+        const playground = document.getElementById('edit_schema_playground');
+        playground.style.display = this.checked ? 'none' : 'block';
+        
+        if (!this.checked) {
+            populateDefaultAttributes('edit_');
+        }
+        updateSchemaValidation('edit_');
+    });
+    
+    // Add attribute button
+    document.getElementById('add_attribute').addEventListener('click', function() {
+        addAttributeRow();
+    });
+    
+    document.getElementById('edit_add_attribute').addEventListener('click', function() {
+        addAttributeRow('edit_');
+    });
+    
+    // Delete all attributes button
+    document.getElementById('delete_all_attributes').addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete all fields? This action cannot be undone.')) {
+            document.getElementById('attributes_list').innerHTML = '';
+            updateSchemaValidation();
+        }
+    });
+    
+    document.getElementById('edit_delete_all_attributes').addEventListener('click', function() {
+        if (confirm('Are you sure you want to delete all fields? This action cannot be undone.')) {
+            document.getElementById('edit_attributes_list').innerHTML = '';
+            updateSchemaValidation('edit_');
+        }
+    });
+    
+    // Form submission
+    document.getElementById('createSchemeForm').addEventListener('submit', function(e) {
+        const useDefaultSchema = document.getElementById('use_default_schema').checked;
+        
+        if (!useDefaultSchema) {
+            const attributes = getAttributesFromForm();
+            const hasDuplicates = checkForDuplicateFields();
+            
+            if (attributes.length === 0) {
+                e.preventDefault();
+                alert('Please add at least one custom field or use the default schema.');
+                return false;
+            }
+            
+            if (hasDuplicates) {
+                e.preventDefault();
+                alert('Please fix duplicate field names before submitting.');
+                return false;
+            }
+            
+            document.getElementById('scheme_attributes').value = JSON.stringify(attributes);
+        } else {
+            document.getElementById('scheme_attributes').value = JSON.stringify([]);
+        }
+    });
+    
+    document.getElementById('editSchemeForm').addEventListener('submit', function(e) {
+        const useDefaultSchema = document.getElementById('edit_use_default_schema').checked;
+        
+        if (!useDefaultSchema) {
+            const attributes = getAttributesFromForm('edit_');
+            const hasDuplicates = checkForDuplicateFields('edit_');
+            
+            if (attributes.length === 0) {
+                e.preventDefault();
+                alert('Please add at least one custom field or use the default schema.');
+                return false;
+            }
+            
+            if (hasDuplicates) {
+                e.preventDefault();
+                alert('Please fix duplicate field names before submitting.');
+                return false;
+            }
+            
+            document.getElementById('edit_scheme_attributes').value = JSON.stringify(attributes);
+        } else {
+            document.getElementById('edit_scheme_attributes').value = JSON.stringify([]);
+        }
+    });
+});
+
+function loadSchemesForDepartment(departmentId) {
+    const container = document.getElementById(`schemes-${departmentId}`);
+    
+    fetch(`/admin/api/schemes-by-department/${departmentId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderSchemes(data.schemes, container, departmentId);
+            } else {
+                container.innerHTML = `<div class="text-center text-muted py-3">Error loading schemes: ${data.message}</div>`;
+            }
+        })
+        .catch(error => {
+            container.innerHTML = `<div class="text-center text-danger py-3">Error loading schemes: ${error.message}</div>`;
+        });
+}
+
+function updateURLWithDepartment(departmentId) {
+    const url = new URL(window.location);
+    
+    if (departmentId) {
+        // Add or update the open_department parameter
+        url.searchParams.set('open_department', departmentId);
+    } else {
+        // Remove the open_department parameter
+        url.searchParams.delete('open_department');
+    }
+    
+    // Update the URL without reloading the page
+    window.history.pushState({}, '', url);
+}
+
+function renderSchemes(schemes, container, departmentId) {
+    if (schemes.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-folder-open fa-2x mb-2"></i>
+                <p>No schemes found for this department.</p>
+                <button type="button" class="btn btn-sm btn-primary" 
+                        data-bs-toggle="modal" data-bs-target="#createSchemeModal" 
+                        data-department-id="${departmentId}" 
+                        data-department-name="${container.closest('.accordion-body').querySelector('h6').textContent.replace('Schemes in ', '')}">
+                    <i class="fas fa-plus"></i> Create First Scheme
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="row">';
+    schemes.forEach(scheme => {
+        const attributes = scheme.attributes || [];
+        const attributesCount = attributes.length;
+        const isDefaultSchema = attributesCount === 0;
+        
+        html += `
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0">${scheme.name}</h6>
+                            <span class="badge ${scheme.is_active ? 'bg-success' : 'bg-danger'}">
+                                ${scheme.is_active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        <p class="card-text text-muted small">${scheme.description || 'No description'}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-database me-1"></i>
+                                ${isDefaultSchema ? 'Default Schema' : `${attributesCount} Custom Fields`}
+                            </small>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                        data-bs-toggle="modal" data-bs-target="#editSchemeModal"
+                                        data-scheme-id="${scheme._id}"
+                                        data-scheme-name="${scheme.name}"
+                                        data-scheme-description="${scheme.description || ''}"
+                                        data-department-name="${scheme.department_name}"
+                                        data-attributes='${JSON.stringify(attributes)}'>
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="deleteScheme('${scheme._id}', '${scheme.name}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    
+    container.innerHTML = html;
+}
+
+function deleteScheme(schemeId, schemeName) {
+    if (confirm(`Are you sure you want to delete the scheme "${schemeName}"? This action cannot be undone.`)) {
+        window.location.href = `/admin/delete-scheme/${schemeId}`;
+    }
+}
+
+function populateDefaultAttributes(prefix = '') {
+    const defaultAttributes = [
+        { name: 'panchayat_name', label: 'Panchayat Name', type: 'string' },
+        { name: 'village_name', label: 'Village Name', type: 'string' },
+        { name: 'registration_number', label: 'Registration Number', type: 'string' },
+        { name: 'beneficiary_name', label: 'Beneficiary Name', type: 'string' },
+        { name: 'father_name', label: 'Father Name', type: 'string' },
+        { name: 'mother_name', label: 'Mother Name', type: 'string' },
+        { name: 'category', label: 'Category', type: 'enum', options: ['SC', 'ST', 'OBC', 'General'] },
+        { name: 'priority', label: 'Priority', type: 'int' },
+        { name: 'schema_code', label: 'Schema Code', type: 'string' },
+        { name: 'bank_name', label: 'Bank Name', type: 'string' },
+        { name: 'branch_name', label: 'Branch Name', type: 'string' },
+        { name: 'ifsc_code', label: 'IFSC Code', type: 'string' },
+        { name: 'bank_account_no', label: 'Bank Account Number', type: 'string' },
+        { name: 'sanction_no', label: 'Sanction Number', type: 'string' },
+        { name: 'amount_released', label: 'Amount Released', type: 'float' },
+        { name: 'installment', label: 'Installment', type: 'int' },
+        { name: 'credit_date', label: 'Credit Date', type: 'date' },
+        { name: 'house_status', label: 'House Status', type: 'enum', options: ['Complete', 'Under Construction', 'Incomplete'] },
+        { name: 'inspection_date', label: 'Inspection Date', type: 'date' }
+    ];
+    
+    const container = document.getElementById(`${prefix}attributes_list`);
+    container.innerHTML = '';
+    
+    defaultAttributes.forEach(attr => {
+        addAttributeRow(prefix, attr);
+    });
+}
+
+function populateEditAttributes(attributes) {
+    const container = document.getElementById('edit_attributes_list');
+    container.innerHTML = '';
+    
+    if (attributes.length === 0) {
+        populateDefaultAttributes('edit_');
+        return;
+    }
+    
+    attributes.forEach(attr => {
+        addAttributeRow('edit_', attr);
+    });
+}
+
+function addAttributeRow(prefix = '', attribute = null) {
+    const container = document.getElementById(`${prefix}attributes_list`);
+    const index = container.children.length;
+    
+    const dataTypes = {
+        'string': 'Text',
+        'int': 'Number',
+        'float': 'Decimal',
+        'date': 'Date',
+        'boolean': 'Yes/No',
+        'enum': 'Dropdown'
+    };
+    
+    const attributeData = attribute || {
+        name: '',
+        label: '',
+        type: 'string',
+        options: []
+    };
+    
+    const optionsHtml = attributeData.options ? attributeData.options.map(opt => `<option value="${opt}" selected>${opt}</option>`).join('') : '';
+    
+    const row = document.createElement('div');
+    row.className = 'row mb-3 attribute-row';
+    row.innerHTML = `
+        <div class="col-md-3">
+            <label class="form-label">Field Name</label>
+            <input type="text" class="form-control attribute-name" 
+                   value="${attributeData.name}" 
+                   placeholder="e.g., beneficiary_name">
+            <small class="form-text text-muted">Auto-generated from label</small>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Display Label</label>
+            <input type="text" class="form-control attribute-label" 
+                   value="${attributeData.label}" 
+                   placeholder="e.g., Beneficiary Name">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Data Type</label>
+            <select class="form-select attribute-type">
+                ${Object.entries(dataTypes).map(([value, label]) => 
+                    `<option value="${value}" ${attributeData.type === value ? 'selected' : ''}>${label}</option>`
+                ).join('')}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Options (for Dropdown)</label>
+            <input type="text" class="form-control attribute-options" 
+                   value="${attributeData.options ? attributeData.options.join(', ') : ''}" 
+                   placeholder="Option1, Option2, Option3">
+            <small class="form-text text-muted">Comma-separated values</small>
+        </div>
+        <div class="col-md-1">
+            <label class="form-label">&nbsp;</label>
+            <button type="button" class="btn btn-outline-danger d-block" onclick="removeAttributeRow(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    
+    container.appendChild(row);
+    
+    // Trigger validation after adding a new row
+    updateSchemaValidation(prefix);
+    
+    // Auto-generate field name from label
+    const labelInput = row.querySelector('.attribute-label');
+    const nameInput = row.querySelector('.attribute-name');
+    
+    labelInput.addEventListener('input', function() {
+        const fieldName = this.value.toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, '_')
+            .substring(0, 50);
+        nameInput.value = fieldName;
+        
+        // Check for duplicate field names and update validation
+        checkForDuplicateFields(prefix);
+        updateSchemaValidation(prefix);
+    });
+    
+    // Show/hide options field based on type
+    const typeSelect = row.querySelector('.attribute-type');
+    const optionsInput = row.querySelector('.attribute-options');
+    const optionsLabel = row.querySelector('.form-label');
+    
+    function toggleOptionsField() {
+        if (typeSelect.value === 'enum') {
+            optionsInput.style.display = 'block';
+            optionsLabel.textContent = 'Options (for Dropdown)';
+        } else {
+            optionsInput.style.display = 'none';
+            optionsLabel.textContent = 'Options (for Dropdown)';
+        }
+    }
+    
+    typeSelect.addEventListener('change', toggleOptionsField);
+    toggleOptionsField();
+}
+
+function removeAttributeRow(button) {
+    button.closest('.attribute-row').remove();
+    // Check if this is in create or edit modal
+    const isEditModal = button.closest('#edit_schema_playground');
+    updateSchemaValidation(isEditModal ? 'edit_' : '');
+}
+
+function getAttributesFromForm(prefix = '') {
+    const rows = document.querySelectorAll(`#${prefix}attributes_list .attribute-row`);
+    const attributes = [];
+    
+    rows.forEach(row => {
+        const label = row.querySelector('.attribute-label').value.trim();
+        const type = row.querySelector('.attribute-type').value;
+        const optionsText = row.querySelector('.attribute-options').value.trim();
+        
+        if (label) {
+            // Generate field name internally from label
+            const name = label.toLowerCase()
+                .replace(/[^a-z0-9\s]/g, '')
+                .replace(/\s+/g, '_')
+                .substring(0, 50);
+            
+            const attribute = {
+                name: name,
+                label: label,
+                type: type
+            };
+            
+            if (type === 'enum' && optionsText) {
+                attribute.options = optionsText.split(',').map(opt => opt.trim()).filter(opt => opt);
+            }
+            
+            attributes.push(attribute);
+        }
+    });
+    
+    return attributes;
+}
+
+function checkForDuplicateFields(prefix = '') {
+    const rows = document.querySelectorAll(`#${prefix}attributes_list .attribute-row`);
+    const fieldNames = new Map();
+    let hasDuplicates = false;
+    
+    // Clear previous duplicate warnings
+    document.querySelectorAll(`#${prefix}attributes_list .duplicate-warning`).forEach(warning => warning.remove());
+    
+    rows.forEach((row, index) => {
+        const labelInput = row.querySelector('.attribute-label');
+        const label = labelInput.value.trim();
+        
+        if (label) {
+            // Generate field name from label (same logic as in getAttributesFromForm)
+            const fieldName = label.toLowerCase()
+                .replace(/[^a-z0-9\s]/g, '')
+                .replace(/\s+/g, '_')
+                .substring(0, 50);
+            
+            if (fieldNames.has(fieldName)) {
+                // Duplicate found
+                hasDuplicates = true;
+                const existingIndex = fieldNames.get(fieldName);
+                
+                // Add warning to both rows
+                addDuplicateWarning(row, existingIndex + 1);
+                const existingRow = rows[existingIndex];
+                addDuplicateWarning(existingRow, index + 1);
+            } else {
+                fieldNames.set(fieldName, index);
+            }
+        }
+    });
+    
+    return hasDuplicates;
+}
+
+function addDuplicateWarning(row, duplicateRowNumber) {
+    // Remove existing warning for this row
+    const existingWarning = row.querySelector('.duplicate-warning');
+    if (existingWarning) {
+        existingWarning.remove();
+    }
+    
+    // Add new warning
+    const warning = document.createElement('div');
+    warning.className = 'duplicate-warning text-danger small mt-1';
+    warning.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>Duplicate field name (also used in row ${duplicateRowNumber})`;
+    row.appendChild(warning);
+}
+
+function updateSchemaValidation(prefix = '') {
+    const useDefaultSchema = document.getElementById(`${prefix}use_default_schema`).checked;
+    const submitButton = document.querySelector(`#${prefix}createSchemeForm button[type="submit"], #${prefix}editSchemeForm button[type="submit"]`);
+    const playground = document.getElementById(`${prefix}schema_playground`);
+    
+    if (!useDefaultSchema) {
+        const attributes = getAttributesFromForm(prefix);
+        const hasAttributes = attributes.length > 0;
+        const hasDuplicates = checkForDuplicateFields(prefix);
+        
+        if (!hasAttributes) {
+            // No attributes - show warning and disable submit
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.title = 'Please add at least one custom field or use the default schema';
+            }
+            
+            // Add warning message if not already present
+            let warningDiv = playground.querySelector('.no-fields-warning');
+            if (!warningDiv) {
+                warningDiv = document.createElement('div');
+                warningDiv.className = 'alert alert-warning no-fields-warning';
+                warningDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>At least one custom field is required. Please add a field or use the default schema.';
+                playground.insertBefore(warningDiv, playground.firstChild);
+            }
+        } else if (hasDuplicates) {
+            // Has attributes but duplicates - disable submit
+            if (submitButton) {
+                submitButton.disabled = true;
+                submitButton.title = 'Please fix duplicate field names';
+            }
+            
+            // Remove no-fields warning if present
+            const warningDiv = playground.querySelector('.no-fields-warning');
+            if (warningDiv) {
+                warningDiv.remove();
+            }
+        } else {
+            // Has attributes and no duplicates - enable submit
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.title = '';
+            }
+            
+            // Remove warning messages
+            const warningDiv = playground.querySelector('.no-fields-warning');
+            if (warningDiv) {
+                warningDiv.remove();
+            }
+        }
+    } else {
+        // Using default schema - enable submit and remove warnings
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.title = '';
+        }
+        
+        const warningDiv = playground.querySelector('.no-fields-warning');
+        if (warningDiv) {
+            warningDiv.remove();
+        }
+        
+        // Clear duplicate warnings
+        document.querySelectorAll(`#${prefix}attributes_list .duplicate-warning`).forEach(warning => warning.remove());
+    }
+}
+</script>
+{% endblock %}

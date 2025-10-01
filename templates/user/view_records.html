@@ -1,0 +1,234 @@
+{% extends "admin/base.html" %}
+
+{% block title %}View Records{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0 text-gray-800">View Records</h1>
+                <a href="{{ url_for('user.dashboard') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="search" 
+                                       placeholder="Search by beneficiary name, panchayat, or registration number..." 
+                                       value="{{ search }}">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{{ url_for('user.view_records') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Clear
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Records Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Records ({{ total_records }} total)</h6>
+                    {% if search %}
+                    <span class="badge badge-info">Search: "{{ search }}"</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if records %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Scheme</th>
+                                    <th>Department</th>
+                                    <th>Custom Data</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in records %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ record.scheme_name if record.scheme_name else 'Unknown' }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-info">{{ record.department_name if record.department_name else 'Unknown' }}</span>
+                                    </td>
+                                    <td>
+                                        {% if record.custom_data %}
+                                            <div class="custom-data-display">
+                                                {% for key, value in record.custom_data.items() %}
+                                                    <div class="mb-1">
+                                                        <small class="text-muted">{{ key.replace('_', ' ').title() }}:</small>
+                                                        <span class="ml-1">
+                                                            {% if value is mapping %}
+                                                                {{ value }}
+                                                            {% elif value is iterable and value is not string %}
+                                                                {{ value|join(', ') }}
+                                                            {% else %}
+                                                                {{ value }}
+                                                            {% endif %}
+                                                        </span>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">No custom data</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>
+                                            {{ record.created_at.strftime('%d-%m-%Y') if record.created_at else '-' }}<br>
+                                            <span class="text-muted">by {{ record.created_by if record.created_by else 'Unknown' }}</span>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewRecordDetails('{{ record._id }}')">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if total_pages > 1 %}
+                    <nav aria-label="Records pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if page > 1 %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('user.view_records', page=page-1, search=search) }}">
+                                    <i class="fas fa-chevron-left"></i> Previous
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% for p in range(1, total_pages + 1) %}
+                                {% if p == page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ p }}</span>
+                                </li>
+                                {% elif p <= 3 or p > total_pages - 3 or (p >= page - 2 and p <= page + 2) %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('user.view_records', page=p, search=search) }}">{{ p }}</a>
+                                </li>
+                                {% elif p == 4 or p == total_pages - 3 %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+
+                            {% if page < total_pages %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('user.view_records', page=page+1, search=search) }}">
+                                    Next <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No records found</h5>
+                        {% if search %}
+                        <p class="text-muted">Try adjusting your search criteria.</p>
+                        <a href="{{ url_for('user.view_records') }}" class="btn btn-primary">
+                            <i class="fas fa-times"></i> Clear Search
+                        </a>
+                        {% else %}
+                        <p class="text-muted">No records have been added yet.</p>
+                        <a href="{{ url_for('user.add_record') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add First Record
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Record Details Modal -->
+<div class="modal fade" id="recordDetailsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Record Details</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="recordDetailsContent">
+                <!-- Content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewRecordDetails(recordId) {
+    // For now, just show a placeholder
+    // In a real implementation, you would fetch record details via AJAX
+    document.getElementById('recordDetailsContent').innerHTML = `
+        <div class="text-center py-4">
+            <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+            <p class="text-muted">Record details for ID: ${recordId}</p>
+            <p class="small text-muted">This feature will be implemented to show detailed record information.</p>
+        </div>
+    `;
+    $('#recordDetailsModal').modal('show');
+}
+</script>
+
+<style>
+.custom-data-display {
+    max-width: 300px;
+    font-size: 0.9em;
+}
+
+.custom-data-display .mb-1 {
+    margin-bottom: 0.25rem !important;
+}
+
+.custom-data-display small {
+    font-weight: 600;
+    color: #6c757d;
+}
+
+.table td {
+    vertical-align: middle;
+}
+</style>
+{% endblock %}

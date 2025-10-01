@@ -1,5 +1,8 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from models.admin import PanchayatRecord
+from models.login import User
+from models.department import Department
+from models.scheme import Scheme
 from routes.login import login_required
 from datetime import datetime
 
@@ -14,8 +17,21 @@ def intialize_user(db):
 @login_required
 def dashboard():
     try:
-        # Get basic statistics for user dashboard
-        stats = PanchayatRecord.get_statistics(mongo)
+        # Get user access information
+        user_id = session.get('user_id')
+        user_access = User.get_user_access_info(mongo, user_id)
+        
+        if not user_access['success']:
+            flash('Error loading user access information.', 'error')
+            return render_template("user/dashboard.html", 
+                                 records_count=0, total_amount=0,
+                                 category_stats=[], panchayat_stats=[])
+        
+        # Get basic statistics for user dashboard based on their access
+        department_ids = user_access['department_ids']
+        scheme_ids = user_access['scheme_ids']
+        
+        stats = PanchayatRecord.get_statistics(mongo, department_ids, scheme_ids)
         
         return render_template("user/dashboard.html", 
                              records_count=stats['total_records'],
@@ -32,29 +48,92 @@ def dashboard():
 @user_bp.route('/add-record', methods=['GET', 'POST'])
 @login_required
 def add_record():
+    # Get user access information
+    user_id = session.get('user_id')
+    user_access = User.get_user_access_info(mongo, user_id)
+    
+    if not user_access['success']:
+        flash('Error loading user access information.', 'error')
+        return redirect(url_for('user.dashboard'))
+    
+    # Get accessible schemes for the user
+    accessible_schemes = []
+    if user_access['scheme_ids']:
+        schemes_result = Scheme.get_schemes_by_ids(mongo, user_access['scheme_ids'])
+        if schemes_result['success']:
+            accessible_schemes = schemes_result['schemes']
+    
     if request.method == 'POST':
         try:
-            # Prepare record data (same as admin)
+            # Get scheme_id from form
+            scheme_id = request.form.get('scheme_id')
+            if not scheme_id:
+                flash('Please select a scheme.', 'error')
+                return render_template('user/add_record.html', schemes=accessible_schemes)
+            
+            # Validate user has access to this scheme
+            if not User.can_access_scheme(mongo, user_id, scheme_id):
+                flash('You do not have access to this scheme.', 'error')
+                return render_template('user/add_record.html', schemes=accessible_schemes)
+            
+            # Get scheme details to get department_id
+            scheme_result = Scheme.get_scheme_by_id(mongo, scheme_id)
+            if not scheme_result['success']:
+                flash('Invalid scheme selected.', 'error')
+                return render_template('user/add_record.html', schemes=accessible_schemes)
+            
+            scheme = scheme_result['scheme']
+            department_id = scheme['department_id']
+            
+            # Get scheme attributes to build custom data
+            scheme_attributes = scheme.get('attributes', [])
+            custom_data = {}
+            
+            # Process each attribute from the scheme
+            for attr in scheme_attributes:
+                field_name = attr.get('name')
+                data_type = attr.get('type', 'string')
+                field_value = request.form.get(field_name)
+                
+                if field_value:
+                    # Convert data types based on scheme definition
+                    if data_type == 'int':
+                        try:
+                            custom_data[field_name] = int(field_value)
+                        except ValueError:
+                            custom_data[field_name] = 0
+                    elif data_type == 'float':
+                        try:
+                            custom_data[field_name] = float(field_value)
+                        except ValueError:
+                            custom_data[field_name] = 0.0
+                    elif data_type == 'date':
+                        try:
+                            custom_data[field_name] = datetime.strptime(field_value, '%Y-%m-%d')
+                        except ValueError:
+                            custom_data[field_name] = None
+                    elif data_type == 'boolean':
+                        custom_data[field_name] = field_value == 'true'
+                    else:  # string, enum, etc.
+                        custom_data[field_name] = field_value
+                else:
+                    # Set default values based on data type
+                    if data_type == 'int':
+                        custom_data[field_name] = 0
+                    elif data_type == 'float':
+                        custom_data[field_name] = 0.0
+                    elif data_type == 'date':
+                        custom_data[field_name] = None
+                    elif data_type == 'boolean':
+                        custom_data[field_name] = False
+                    else:
+                        custom_data[field_name] = ''
+            
+            # Prepare record data with scheme and department info
             record_data = {
-                'panchayat_name': request.form.get('panchayat_name'),
-                'village_name': request.form.get('village_name'),
-                'registration_number': request.form.get('registration_number'),
-                'beneficiary_name': request.form.get('beneficiary_name'),
-                'father_name': request.form.get('father_name'),
-                'mother_name': request.form.get('mother_name'),
-                'category': request.form.get('category'),
-                'priority': request.form.get('priority'),
-                'schema_code': request.form.get('schema_code'),
-                'bank_name': request.form.get('bank_name'),
-                'branch_name': request.form.get('branch_name'),
-                'ifsc_code': request.form.get('ifsc_code'),
-                'bank_account_no': request.form.get('bank_account_no'),
-                'sanction_no': request.form.get('sanction_no'),
-                'amount_released': request.form.get('amount_released'),
-                'installment': request.form.get('installment'),
-                'credit_date': datetime.strptime(request.form.get('credit_date'), '%Y-%m-%d') if request.form.get('credit_date') else None,
-                'house_status': request.form.get('house_status'),
-                'inspection_date': datetime.strptime(request.form.get('inspection_date'), '%Y-%m-%d') if request.form.get('inspection_date') else None,
+                'department_id': department_id,
+                'scheme_id': scheme_id,
+                'custom_data': custom_data
             }
 
             # Use PanchayatRecord model to create record
@@ -70,18 +149,30 @@ def add_record():
             flash('An error occurred while adding the record.', 'error')
             print(f"User add record error: {e}")
 
-    return render_template('user/add_record.html')
+    return render_template('user/add_record.html', schemes=accessible_schemes)
 
 @user_bp.route('/view-records')
 @login_required
 def view_records():
     try:
+        # Get user access information
+        user_id = session.get('user_id')
+        user_access = User.get_user_access_info(mongo, user_id)
+        
+        if not user_access['success']:
+            flash('Error loading user access information.', 'error')
+            return render_template('user/view_records.html', records=[], page=1, 
+                                 total_records=0, total_pages=0, search='')
+        
         page = int(request.args.get('page', 1))
         search = request.args.get('search', '')
         per_page = 10
         
-        # Use PanchayatRecord model to get records
-        result = PanchayatRecord.get_all_records(mongo, page, per_page, search)
+        # Get records based on user's access
+        department_ids = user_access['department_ids']
+        scheme_ids = user_access['scheme_ids']
+        
+        result = PanchayatRecord.get_records_by_user_access(mongo, page, per_page, search, department_ids, scheme_ids)
         
         if result['success']:
             return render_template('user/view_records.html', 
@@ -100,3 +191,44 @@ def view_records():
         print(f"User view records error: {e}")
         return render_template('user/view_records.html', records=[], page=1, 
                              total_records=0, total_pages=0, search='')
+
+@user_bp.route('/api/scheme-form-fields/<scheme_id>')
+@login_required
+def get_scheme_form_fields(scheme_id):
+    """Get form fields for a specific scheme"""
+    try:
+        # Validate user has access to this scheme
+        user_id = session.get('user_id')
+        if not User.can_access_scheme(mongo, user_id, scheme_id):
+            return {'success': False, 'message': 'Access denied to this scheme'}
+        
+        # Get scheme details
+        scheme_result = Scheme.get_scheme_by_id(mongo, scheme_id)
+        if not scheme_result['success']:
+            return {'success': False, 'message': 'Scheme not found'}
+        
+        scheme = scheme_result['scheme']
+        attributes = scheme.get('attributes', [])
+        
+        # Convert attributes to form fields
+        form_fields = []
+        for attr in attributes:
+            field = {
+                'name': attr.get('name', ''),
+                'label': attr.get('label', ''),
+                'type': attr.get('type', 'string'),
+                'required': attr.get('required', False),
+                'options': attr.get('options', []) if attr.get('type') == 'enum' else []
+            }
+            form_fields.append(field)
+        
+        return {
+            'success': True,
+            'scheme_name': scheme['name'],
+            'department_name': scheme.get('department_name', 'Unknown'),
+            'form_fields': form_fields
+        }
+        
+    except Exception as e:
+        print(f"Error getting scheme form fields: {e}")
+        return {'success': False, 'message': f'Error: {str(e)}'}
