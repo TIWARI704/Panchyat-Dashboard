@@ -10,11 +10,11 @@ cd Panchyat-Dashboard
 ```bash
 # Windows
 python -m venv venv
-venv\Scripts\activate
+.venv\Scripts\activate
 
 # macOS/Linux
 python3 -m venv venv
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 ### Step 3: Install Dependencies
