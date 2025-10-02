@@ -900,18 +900,23 @@ def create_user():
         is_superadmin = role == 'superadmin'
 
         # Get department and scheme access
-        department_access_str = request.form.getlist('department_access', '')
-        scheme_access_str = request.form.getlist('scheme_access', '')
+        department_access_str = request.form.get('department_access', '').strip()
+        scheme_access_str = request.form.get('scheme_access', '').strip()
 
         if department_access_str == 'all':
             department_access = ['all']
-        else:
+        elif department_access_str:
             department_access = [d.strip() for d in department_access_str.split(',') if d.strip()]
+        else:
+            department_access = []
+    
 
         if scheme_access_str == 'all':
             scheme_access = ['all']
-        else:
+        elif scheme_access_str:
             scheme_access = [s.strip() for s in scheme_access_str.split(',') if s.strip()]
+        else:
+            scheme_access = []
         
         # Create user using the User model (dictionary approach)
         user_data = {
