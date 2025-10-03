@@ -681,14 +681,28 @@ def edit_user(user_id):
                 flash('You cannot demote yourself from superadmin role.', 'error')
                 return redirect(url_for('admin.manage_users'))
             
-            # Get department and scheme access
+            # Get department and scheme access from checkboxes
             department_access = request.form.getlist('department_access')
             scheme_access = request.form.getlist('scheme_access')
+
+            # Handle 'all' selections
+            if 'all' in department_access:
+                department_access = ['all']
+            elif not department_access:
+                department_access = []
+
+            if 'all' in scheme_access:
+                scheme_access = ['all']
+            elif not scheme_access:
+                scheme_access = []
+            
             
             update_data = {
                 'role': new_role,
+                'email': request.form.get('email', '').strip() or None,
                 'is_admin': is_admin,
                 'is_superadmin': is_superadmin,
+                'is_active': request.form.get('is_active') == 'on',
                 'department_access': department_access,
                 'scheme_access': scheme_access,
                 'updated_at': datetime.utcnow()
@@ -703,6 +717,8 @@ def edit_user(user_id):
                 flash('Failed to update user', 'error')
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             flash('An error occurred while updating user.', 'error')
     
     # GET request - show edit form
@@ -711,6 +727,17 @@ def edit_user(user_id):
         if not user:
             flash('User not found', 'error')
             return redirect(url_for('admin.manage_users'))
+        
+        # Ensure department_access and scheme_access are lists
+        if 'department_access' not in user or user['department_access'] is None:
+            user['department_access'] = []
+        elif not isinstance(user['department_access'], list):
+            user['department_access'] = [user['department_access']]
+            
+        if 'scheme_access' not in user or user['scheme_access'] is None:
+            user['scheme_access'] = []
+        elif not isinstance(user['scheme_access'], list):
+            user['scheme_access'] = [user['scheme_access']]
         
         # Get all departments and schemes for selection
         dept_result = Department.get_all_departments(mongo, active_only=True)
@@ -722,6 +749,8 @@ def edit_user(user_id):
         return render_template('admin/edit_user.html', user=user, departments=departments, schemes=schemes)
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         flash('Error loading user', 'error')
         return redirect(url_for('admin.manage_users'))
 
