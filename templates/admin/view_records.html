@@ -457,16 +457,11 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Check if user is superadmin and load filter data
-        {% if session.is_superadmin %}
-        loadSuperadminFilterData();
-        {% else %}
-        loadAdminFilterData();
-        loadFilteredRecords(); // Load records without filters for non-superadmin
-        {% endif %}
+        // Load filter data for ALL users (both superadmin and admin)
+        loadFilterData();
 
-        // Function to load superadmin filter data
-        function loadSuperadminFilterData() {
+        // Function to load filter data (works for all users)
+        function loadFilterData() {
             fetch('/admin/api/superadmin-filter-data')
                 .then(response => response.json())
                 .then(data => {
@@ -474,32 +469,17 @@
                         populateDepartmentDropdown(data.departments);
                         populateSchemeDropdown(data.schemes);
                         showFilterRow();
-                        loadFilteredRecords(); // Load records with current filters
+                        // IMPORTANT: Load records AFTER filters are populated
+                        loadFilteredRecords();
                     } else {
                         console.error('Error loading filter data:', data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching filter data:', error);
-                });
-        }
-
-        function loadAdminFilterData() {
-            fetch('/admin/api/superadmin-filter-data')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        populateDepartmentDropdown(data.departments);
-                        populateSchemeDropdown(data.schemes);
-                        showFilterRow();
-                        loadFilteredRecords(); // Load records with current filters
-                    } else {
-                        console.error('Error loading filter data:', data.message);
+                        // Still try to load records even if filter data fails
                         loadFilteredRecords();
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching filter data:', error);
+                    // Still try to load records even if filter data fails
                     loadFilteredRecords();
                 });
         }
@@ -514,6 +494,8 @@
             // Clear existing options except the first one
             departmentSelect.innerHTML = '<option value="">ALL</option>';
 
+            console.log('Populating departments:', departments); // Debug log
+
             // Add department options
             departments.forEach(dept => {
                 const option = document.createElement('option');
@@ -524,6 +506,7 @@
                 departmentSelect.appendChild(option);
             });
 
+            console.log('Department dropdown populated with', departments.length, 'departments');
         }
 
         function populateSchemeDropdown(schemes) {
@@ -535,6 +518,8 @@
 
             // Clear existing options except the first one
             schemeSelect.innerHTML = '<option value="">ALL</option>';
+
+            console.log('Populating schemes:', schemes); // Debug log
 
             // Group schemes by department
             const groupedSchemes = {};
@@ -565,6 +550,7 @@
                 schemeSelect.appendChild(optgroup);
             });
 
+            console.log('Scheme dropdown populated with', schemes.length, 'schemes');
         }
 
         function showFilterRow() {
@@ -581,6 +567,12 @@
             const schemeFilter = document.getElementById('scheme_filter').value;
             const talukaFilter = document.getElementById('taluka_filter').value;
 
+            console.log('Loading filtered records with:', {
+                department: departmentFilter,
+                scheme: schemeFilter,
+                taluka: talukaFilter
+            });
+
             // Build query parameters
             const params = new URLSearchParams();
             if (departmentFilter && departmentFilter !== '') {
@@ -594,20 +586,25 @@
             }
 
             const url = `/admin/api/filtered-records?${params.toString()}`;
+            console.log('Fetching from URL:', url);
 
             // Make API call to get filtered records
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('Filtered records response:', data);
                     if (data.success) {
                         allRecords = data.records; // Store all records for frontend filtering
+                        console.log('Loaded', allRecords.length, 'records');
                         applyFrontendFilters(); // Apply current search and filters
                     } else {
                         console.error('Error loading filtered records:', data.message);
+                        showNoRecordsMessage();
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching filtered records:', error);
+                    showNoRecordsMessage();
                 });
         }
 

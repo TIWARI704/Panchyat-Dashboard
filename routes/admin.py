@@ -1493,41 +1493,57 @@ def get_superadmin_filter_data():
 @login_required
 @admin_required
 def get_filtered_records_api():
-    """API endpoint to get filtered records for superadmin"""
+    """API endpoint to get filtered records for all admins"""
     try:
         # Get filter parameters from query string
         department_id = request.args.get('department_id')
         scheme_id = request.args.get('scheme_id')
         taluka = request.args.get('taluka')
-        user_id = request.args.get('user_id')
+        
+        # Get user ID for access filtering
+        user_id = session.get('user_id')
+        
         # Convert to lists for the get_all_records method
         department_ids = [department_id] if department_id else None
         scheme_ids = [scheme_id] if scheme_id else None
         
-        # Get filtered records with department and scheme names
+        # Get filtered records with user access control
         result = PanchayatRecord.get_all_records(
             mongo, 
             page=1, 
-            per_page=10000,
+            per_page=100000,  # Get all records
             department_ids=department_ids,
             scheme_ids=scheme_ids,
             taluka_filter=taluka,
-            user_id=user_id
+            user_id=user_id  # IMPORTANT: Pass user_id for access filtering
         )
         
         if result['success']:
+            # Convert ObjectId to string for JSON serialization
+            records = result['records']
+            for record in records:
+                if '_id' in record:
+                    record['_id'] = {'$oid': str(record['_id'])} if not isinstance(record['_id'], dict) else record['_id']
+                if 'department_id' in record:
+                    record['department_id'] = {'$oid': str(record['department_id'])} if not isinstance(record['department_id'], dict) else record['department_id']
+                if 'scheme_id' in record:
+                    record['scheme_id'] = {'$oid': str(record['scheme_id'])} if not isinstance(record['scheme_id'], dict) else record['scheme_id']
+            
             return jsonify({
                 'success': True,
-                'records': result['records'],
+                'records': records,
                 'total_records': result['total_records']
             })
         else:
             return jsonify({
                 'success': False,
-                'message': result['message']
+                'message': result.get('message', 'Unknown error')
             })
         
     except Exception as e:
+        print(f"ERROR in get_filtered_records_api: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error fetching filtered records: {str(e)}'
