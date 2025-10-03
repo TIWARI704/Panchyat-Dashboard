@@ -184,34 +184,112 @@ def add_record():
 @user_bp.route('/view-records')
 @login_required
 def view_records():
-    """View user's own records with pagination and search"""
+    """View records based on user's department and scheme access with pagination and search"""
     try:
         page = int(request.args.get('page', 1))
         search = request.args.get('search', '')
         per_page = 10
         
-        username = session.get('username')
+        user_id = session.get('user_id')
         
-        # Build query for user's own records
-        query = {
-            'created_by': username,
-            'is_active': True
-        }
+        # Get user access information
+        user_access = User.get_user_access_info(mongo, user_id)
+        
+        if not user_access:
+            flash('Error loading user access information.', 'error')
+            return render_template(
+                'user/view_records.html',
+                records=[],
+                total_records=0,
+                page=1,
+                total_pages=0,
+                search=''
+            )
+        
+        # Build base query
+        query = {'is_active': True}
+        
+        # Apply department and scheme access filters
+        department_access = user_access.get('department_access', [])
+        scheme_access = user_access.get('scheme_access', [])
+        
+        # Check if user has all access
+        has_all_access = user_access.get('has_all_access', False) or user_access.get('is_superadmin', False)
+        
+        if not has_all_access:
+            # Apply department filter if user doesn't have 'all' access
+            if department_access and 'all' not in department_access:
+                try:
+                    valid_dept_ids = [ObjectId(dep_id) for dep_id in department_access if dep_id != 'all']
+                    if valid_dept_ids:
+                        query['department_id'] = {'$in': valid_dept_ids}
+                    else:
+                        return render_template(
+                            'user/view_records.html',
+                            records=[],
+                            total_records=0,
+                            page=1,
+                            total_pages=0,
+                            search=''
+                        )
+                except Exception as e:
+                    print(f"ERROR USER_VIEW_RECORDS - Converting department IDs: {e}")
+                    flash('Error loading records: Invalid department access', 'error')
+                    return render_template(
+                        'user/view_records.html',
+                        records=[],
+                        total_records=0,
+                        page=1,
+                        total_pages=0,
+                        search=''
+                    )
+            
+            # Apply scheme filter if user doesn't have 'all' access
+            if scheme_access and 'all' not in scheme_access:
+                try:
+                    valid_scheme_ids = [ObjectId(scheme_id) for scheme_id in scheme_access if scheme_id != 'all']
+                    if valid_scheme_ids:
+                        query['scheme_id'] = {'$in': valid_scheme_ids}
+                    else:
+                        return render_template(
+                            'user/view_records.html',
+                            records=[],
+                            total_records=0,
+                            page=1,
+                            total_pages=0,
+                            search=''
+                        )
+                except Exception as e:
+                    print(f"ERROR USER_VIEW_RECORDS - Converting scheme IDs: {e}")
+                    flash('Error loading records: Invalid scheme access', 'error')
+                    return render_template(
+                        'user/view_records.html',
+                        records=[],
+                        total_records=0,
+                        page=1,
+                        total_pages=0,
+                        search=''
+                    )
+        else:
+            print(f"DEBUG USER_VIEW_RECORDS - User has all access, no filtering applied")
         
         # Add search conditions if search query exists
         if search:
             search_conditions = []
             
-            # Search in custom_data fields
+            # Search in custom_data fields (as string to search all fields)
             search_conditions.append({'custom_data': {'$regex': search, '$options': 'i'}})
             
-            # Combine with user filter
-            query['$and'] = [
-                {'created_by': username},
-                {'$or': search_conditions}
-            ]
-            # Remove the duplicate created_by from root
-            del query['created_by']
+            # Combine with existing query using $and
+            if len(query) > 1:  # If we already have filters (department/scheme)
+                existing_filters = [{k: v} for k, v in query.items() if k != 'is_active']
+                query = {
+                    'is_active': True,
+                    '$and': existing_filters + [{'$or': search_conditions}]
+                }
+            else:
+                # Only is_active filter exists
+                query['$or'] = search_conditions
         
         # Calculate pagination
         skip = (page - 1) * per_page
