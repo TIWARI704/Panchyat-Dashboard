@@ -1641,8 +1641,6 @@ def get_dashboard_data_api():
             user_id=user_id  # IMPORTANT: Pass user_id for access filtering
         )
         
-        print(f"DEBUG DASHBOARD - Records found: {result.get('total_records', 0)}")
-        
         if result['success']:
             # Convert ObjectId to string for JSON serialization
             records = result['records']
