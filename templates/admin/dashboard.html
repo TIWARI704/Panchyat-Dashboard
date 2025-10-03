@@ -14,18 +14,18 @@
     <div class="d-flex gap-2">
         <button class="btn btn-outline-primary" id="refreshBtn">
             <i class="fas fa-sync-alt me-2"></i>Refresh Data
-                    </button>
+        </button>
         <button class="btn btn-outline-success" id="exportBtn">
             <i class="fas fa-download me-2"></i>Download PDF Report
-                    </button>
-                        </div>
-                    </div>
+        </button>
+    </div>
+</div>
 
 <!-- Filter Section -->
 <div class="card mb-4">
     <div class="card-header">
         <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Data Filters</h5>
-                                </div>
+    </div>
     <div class="card-body">
         <div class="row">
             <!-- Department Filter -->
@@ -35,8 +35,8 @@
                     <select class="form-select" id="department_filter" name="department_filter">
                         <option value="">ALL</option>
                     </select>
-                                </div>
-                        </div>
+                </div>
+            </div>
 
             <!-- Scheme Filter -->
             <div class="col-md-4">
@@ -44,9 +44,9 @@
                     <label for="scheme_filter" class="form-label">Scheme</label>
                     <select class="form-select" id="scheme_filter" name="scheme_filter">
                         <option value="">ALL</option>
-                                        </select>
-                        </div>
-                    </div>
+                    </select>
+                </div>
+            </div>
 
             <!-- Taluka Filter -->
             <div class="col-md-4">
@@ -69,12 +69,12 @@
                         <option value="Pachora">Pachora</option>
                         <option value="Bhadgaon">Bhadgaon</option>
                         <option value="Chalisgaon">Chalisgaon</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Report Content Container -->
 <div id="reportContent">
@@ -86,507 +86,507 @@
         <div class="row">
             <div class="col-md-4">
                 <strong>Generated On:</strong> <span id="reportDate"></span>
-                                </div>
+            </div>
             <div class="col-md-4">
                 <strong>Total Records:</strong> <span id="reportRecordCount"></span>
-                            </div>
+            </div>
             <div class="col-md-4">
                 <strong>Data Fields:</strong> <span id="reportFieldCount"></span>
-                        </div>
-                                </div>
+            </div>
+        </div>
         <hr class="my-4">
-                </div>
+    </div>
 
     <!-- Key Metrics Overview -->
     <div class="row mb-4" id="metricsOverview">
         <!-- Dynamic metrics will be loaded here -->
-                    </div>
+    </div>
 
     <!-- Smart Charts Section -->
     <div class="row" id="chartsContainer">
         <!-- Dynamic charts will be generated here -->
-                    </div>
+    </div>
 
     <!-- Data Insights Section -->
     <div class="row mt-4">
-                        <div class="col-12">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Smart Insights</h5>
-                                </div>
+                </div>
                 <div class="card-body" id="insightsContainer">
                     <!-- Dynamic insights will be generated here -->
-                            </div>
-                        </div>
-                        </div>
-                    </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay" style="display: none;">
     <div class="loading-spinner">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
-                            </div>
+        </div>
         <p class="mt-3">Analyzing data and generating insights...</p>
-                        </div>
-                    </div>
+    </div>
+</div>
 
 <style>
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
 
-.loading-spinner {
-    text-align: center;
-}
+    .loading-spinner {
+        text-align: center;
+    }
 
-.metric-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease;
-}
-
-.metric-card:hover {
-    transform: translateY(-5px);
-}
-
-.metric-card.success {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-}
-
-.metric-card.warning {
-    background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
-}
-
-.metric-card.danger {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-.metric-card.info {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-}
-
-.metric-number {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin: 0;
-}
-
-.metric-label {
-    font-size: 1rem;
-    opacity: 0.9;
-    margin: 5px 0;
-}
-
-.chart-container {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    border: 1px solid #e9ecef;
-}
-
-.chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f8f9fa;
-}
-
-.chart-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #495057;
-    margin: 0;
-}
-
-.insight-card {
-    background: #f8f9fa;
-    border-left: 4px solid #007bff;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 5px;
-}
-
-.insight-card.warning {
-    border-left-color: #ffc107;
-    background: #fff3cd;
-}
-
-.insight-card.success {
-    border-left-color: #28a745;
-    background: #d4edda;
-}
-
-.insight-card.danger {
-    border-left-color: #dc3545;
-    background: #f8d7da;
-}
-
-/* Hide report header from UI but keep it for PDF */
-#reportHeader {
-    display: none;
-}
-
-/* PDF Report Styling - only applied during PDF generation */
-@media print {
-    #reportHeader {
-        display: block !important;
+    .metric-card {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 30px;
         border-radius: 15px;
-        margin-bottom: 30px;
-        page-break-after: avoid;
-    }
-    
-    #reportHeader h1 {
-        color: white !important;
-        margin-bottom: 10px;
-        font-size: 2.5rem;
-    }
-    
-    #reportHeader p {
-        color: rgba(255, 255, 255, 0.9) !important;
+        padding: 20px;
         margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .metric-card.success {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .metric-card.warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+    }
+
+    .metric-card.danger {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .metric-card.info {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .metric-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin: 0;
+    }
+
+    .metric-label {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin: 5px 0;
+    }
+
+    .chart-container {
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e9ecef;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+
+    .chart-title {
         font-size: 1.2rem;
+        font-weight: 600;
+        color: #495057;
+        margin: 0;
     }
-    
-    #reportHeader hr {
-        border-color: rgba(255, 255, 255, 0.3);
+
+    .insight-card {
+        background: #f8f9fa;
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
     }
-    
-    #reportHeader .row {
-        color: white;
+
+    .insight-card.warning {
+        border-left-color: #ffc107;
+        background: #fff3cd;
     }
-}
 
-/* PDF-specific styling for single long page */
-#reportContent .card {
-    margin-bottom: 20px;
-}
+    .insight-card.success {
+        border-left-color: #28a745;
+        background: #d4edda;
+    }
 
-#reportContent .chart-container {
-    margin-bottom: 30px;
-}
+    .insight-card.danger {
+        border-left-color: #dc3545;
+        background: #f8d7da;
+    }
 
-#reportContent .metric-card {
-    margin-bottom: 15px;
-}
+    /* Hide report header from UI but keep it for PDF */
+    #reportHeader {
+        display: none;
+    }
 
-#reportContent .insight-card {
-    margin-bottom: 15px;
-}
+    /* PDF Report Styling - only applied during PDF generation */
+    @media print {
+        #reportHeader {
+            display: block !important;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            page-break-after: avoid;
+        }
 
-/* Ensure proper spacing in PDF */
-#reportContent .mb-4 {
-    margin-bottom: 2rem !important;
-}
+        #reportHeader h1 {
+            color: white !important;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
 
-#reportContent .mt-4 {
-    margin-top: 2rem !important;
-}
+        #reportHeader p {
+            color: rgba(255, 255, 255, 0.9) !important;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
 
-/* Chart sizing for PDF */
-#reportContent canvas {
-    max-width: 100% !important;
-    height: auto !important;
-}
+        #reportHeader hr {
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        #reportHeader .row {
+            color: white;
+        }
+    }
+
+    /* PDF-specific styling for single long page */
+    #reportContent .card {
+        margin-bottom: 20px;
+    }
+
+    #reportContent .chart-container {
+        margin-bottom: 30px;
+    }
+
+    #reportContent .metric-card {
+        margin-bottom: 15px;
+    }
+
+    #reportContent .insight-card {
+        margin-bottom: 15px;
+    }
+
+    /* Ensure proper spacing in PDF */
+    #reportContent .mb-4 {
+        margin-bottom: 2rem !important;
+    }
+
+    #reportContent .mt-4 {
+        margin-top: 2rem !important;
+    }
+
+    /* Chart sizing for PDF */
+    #reportContent canvas {
+        max-width: 100% !important;
+        height: auto !important;
+    }
 </style>
 
 <script>
-// Global variables
-let allData = [];
-let filteredData = [];
-let fieldAnalysis = {};
-let chartInstances = {};
+    // Global variables
+    let allData = [];
+    let filteredData = [];
+    let fieldAnalysis = {};
+    let chartInstances = {};
 
-// Initialize dashboard
-document.addEventListener('DOMContentLoaded', function() {
-    loadFilterData();
-    setupEventListeners();
-});
-
-// Load filter options
-function loadFilterData() {
-    // Load departments and schemes for superadmin
-    fetch('/admin/api/superadmin-filter-data')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                populateDepartmentDropdown(data.departments);
-                populateSchemeDropdown(data.schemes);
-                loadDashboardData(); // Load initial data
-            }
-        })
-        .catch(error => {
-            console.error('Error loading filter data:', error);
-        });
-}
-
-// Populate department dropdown
-function populateDepartmentDropdown(departments) {
-    const select = document.getElementById('department_filter');
-    select.innerHTML = '<option value="">ALL</option>';
-    
-    departments.forEach(dept => {
-        const option = document.createElement('option');
-        option.value = dept._id.$oid || dept._id;
-        option.textContent = dept.name;
-        select.appendChild(option);
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function () {
+        loadFilterData();
+        setupEventListeners();
     });
-}
 
-// Populate scheme dropdown
-function populateSchemeDropdown(schemes) {
-    const select = document.getElementById('scheme_filter');
-    select.innerHTML = '<option value="">ALL</option>';
-    
-    // Group schemes by department
-    const groupedSchemes = {};
-    schemes.forEach(scheme => {
-        const deptName = scheme.department_name || 'Unknown';
-        if (!groupedSchemes[deptName]) {
-            groupedSchemes[deptName] = [];
-        }
-        groupedSchemes[deptName].push(scheme);
-    });
-    
-    Object.keys(groupedSchemes).forEach(deptName => {
-        const optgroup = document.createElement('optgroup');
-        optgroup.label = deptName;
-        
-        groupedSchemes[deptName].forEach(scheme => {
-            const option = document.createElement('option');
-            option.value = scheme._id.$oid || scheme._id;
-            option.textContent = scheme.name;
-            option.setAttribute('data-department', scheme.department_id.$oid || scheme.department_id);
-            optgroup.appendChild(option);
-        });
-        
-        select.appendChild(optgroup);
-    });
-}
-
-// Setup event listeners
-function setupEventListeners() {
-    // Filter change listeners
-    document.getElementById('department_filter').addEventListener('change', function() {
-        const selectedDept = this.value;
-        const schemeSelect = document.getElementById('scheme_filter');
-        
-        // Reset scheme filter
-        schemeSelect.value = '';
-        
-        // Show/hide scheme options based on department
-        const schemeOptions = schemeSelect.querySelectorAll('option[data-department]');
-        schemeOptions.forEach(option => {
-            if (!selectedDept || option.getAttribute('data-department') === selectedDept) {
-                option.style.display = 'block';
-        } else {
-                option.style.display = 'none';
-            }
-        });
-        
-        loadDashboardData();
-    });
-    
-    document.getElementById('scheme_filter').addEventListener('change', loadDashboardData);
-    document.getElementById('taluka_filter').addEventListener('change', loadDashboardData);
-    
-    // Action buttons
-    document.getElementById('refreshBtn').addEventListener('click', loadDashboardData);
-    document.getElementById('exportBtn').addEventListener('click', exportDashboard);
-}
-
-// Load dashboard data based on filters
-function loadDashboardData() {
-    showLoading();
-    
-    const departmentFilter = document.getElementById('department_filter').value;
-    const schemeFilter = document.getElementById('scheme_filter').value;
-    const talukaFilter = document.getElementById('taluka_filter').value;
-    
-    // Build query parameters
-    const params = new URLSearchParams();
-    if (departmentFilter) params.append('department_id', departmentFilter);
-    if (schemeFilter) params.append('scheme_id', schemeFilter);
-    if (talukaFilter) params.append('taluka', talukaFilter);
-    
-    const url = `/admin/api/dashboard-data?${params.toString()}`;
-    
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                allData = data.records;
-                filteredData = allData;
-                analyzeData();
-                generateMetrics();
-                generateCharts();
-                generateInsights();
-            } else {
-                console.error('Error loading dashboard data:', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching dashboard data:', error);
-        })
-        .finally(() => {
-            hideLoading();
-        });
-}
-
-// Smart data analysis
-function analyzeData() {
-    fieldAnalysis = {};
-    
-    if (filteredData.length === 0) return;
-    
-    // Analyze each field in custom_data
-    const allFields = new Set();
-    filteredData.forEach(record => {
-        if (record.custom_data) {
-            Object.keys(record.custom_data).forEach(field => {
-                allFields.add(field);
+    // Load filter options
+    function loadFilterData() {
+        // Load departments and schemes for superadmin
+        fetch('/admin/api/superadmin-filter-data')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    populateDepartmentDropdown(data.departments);
+                    populateSchemeDropdown(data.schemes);
+                    loadDashboardData(); // Load initial data
+                }
+            })
+            .catch(error => {
+                console.error('Error loading filter data:', error);
             });
-        }
-    });
-    
-    allFields.forEach(fieldName => {
-        const fieldData = filteredData
-            .map(record => record.custom_data?.[fieldName])
-            .filter(value => value !== null && value !== undefined && value !== '');
-        
-        if (fieldData.length === 0) return;
-        
-        const analysis = {
-            name: fieldName,
-            type: detectFieldType(fieldData),
-            uniqueValues: [...new Set(fieldData)].length,
-            totalValues: fieldData.length,
-            sampleValues: [...new Set(fieldData)].slice(0, 10),
-            chartTypes: []
-        };
-        
-        // Determine suitable chart types
-        if (analysis.type === 'temporal') {
-            // Temporal fields should always use line charts for time series
-            analysis.chartTypes.push('line', 'area');
-        } else if (analysis.type === 'categorical' && analysis.uniqueValues <= 10) {
-            analysis.chartTypes.push('pie', 'doughnut', 'bar');
-        } else if (analysis.type === 'categorical' && analysis.uniqueValues > 10) {
-            analysis.chartTypes.push('bar', 'horizontalBar');
-        } else if (analysis.type === 'numerical') {
-            analysis.chartTypes.push('histogram', 'boxplot', 'line');
-        }
-        
-        fieldAnalysis[fieldName] = analysis;
-    });
-}
+    }
 
-// Detect field type
-function detectFieldType(values) {
-    const sample = values.slice(0, 100);
-    
-    // Check if it's a date - improved detection
-    const dateCount = sample.filter(val => {
-        if (!val) return false;
-        
-        // Handle MongoDB date objects
-        if (val.$date) {
-            return true;
-        }
-        
-        // Handle Date objects
-        if (val instanceof Date) {
-            return !isNaN(val.getTime());
-        }
-        
-        // Handle date strings
-        const dateStr = val.toString();
-        const date = new Date(dateStr);
-        
-        // Check if it's a valid date and matches common date patterns
-        return !isNaN(date.getTime()) && (
-            dateStr.match(/\d{4}-\d{2}-\d{2}/) || // YYYY-MM-DD
-            dateStr.match(/\d{2}\/\d{2}\/\d{4}/) || // MM/DD/YYYY
-            dateStr.match(/\d{2}-\d{2}-\d{4}/) || // MM-DD-YYYY
-            dateStr.includes('T') || // ISO format
-            dateStr.includes('GMT') || // GMT format
-            dateStr.includes('UTC') // UTC format
-        );
-    }).length;
-    
-    if (dateCount > sample.length * 0.6) return 'temporal';
-    
-    // Check if it's numerical
-    const numericCount = sample.filter(val => {
-        return !isNaN(parseFloat(val)) && isFinite(val);
-    }).length;
-    
-    if (numericCount > sample.length * 0.8) return 'numerical';
-    
-    // Check if it's boolean
-    const booleanCount = sample.filter(val => {
-        return val === true || val === false || val === 'true' || val === 'false';
-    }).length;
-    
-    if (booleanCount > sample.length * 0.8) return 'boolean';
-    
-    // Default to categorical
-    return 'categorical';
-}
+    // Populate department dropdown
+    function populateDepartmentDropdown(departments) {
+        const select = document.getElementById('department_filter');
+        select.innerHTML = '<option value="">ALL</option>';
 
-// Generate key metrics
-function generateMetrics() {
-    const container = document.getElementById('metricsOverview');
-    
-    const metrics = [
-        {
-            title: 'Total Records',
-            value: filteredData.length,
-            icon: 'fas fa-database',
-            color: 'info'
-        },
-        {
-            title: 'Active Schemes',
-            value: new Set(filteredData.map(r => r.scheme_name)).size,
-            icon: 'fas fa-layer-group',
-            color: 'success'
-        },
-        {
-            title: 'Departments',
-            value: new Set(filteredData.map(r => r.department_name)).size,
-            icon: 'fas fa-building',
-            color: 'warning'
-        },
-        {
-            title: 'Data Fields',
-            value: Object.keys(fieldAnalysis).length,
-            icon: 'fas fa-chart-bar',
-            color: 'danger'
-        }
-    ];
-    
-    container.innerHTML = metrics.map(metric => `
+        departments.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept._id.$oid || dept._id;
+            option.textContent = dept.name;
+            select.appendChild(option);
+        });
+    }
+
+    // Populate scheme dropdown
+    function populateSchemeDropdown(schemes) {
+        const select = document.getElementById('scheme_filter');
+        select.innerHTML = '<option value="">ALL</option>';
+
+        // Group schemes by department
+        const groupedSchemes = {};
+        schemes.forEach(scheme => {
+            const deptName = scheme.department_name || 'Unknown';
+            if (!groupedSchemes[deptName]) {
+                groupedSchemes[deptName] = [];
+            }
+            groupedSchemes[deptName].push(scheme);
+        });
+
+        Object.keys(groupedSchemes).forEach(deptName => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = deptName;
+
+            groupedSchemes[deptName].forEach(scheme => {
+                const option = document.createElement('option');
+                option.value = scheme._id.$oid || scheme._id;
+                option.textContent = scheme.name;
+                option.setAttribute('data-department', scheme.department_id.$oid || scheme.department_id);
+                optgroup.appendChild(option);
+            });
+
+            select.appendChild(optgroup);
+        });
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+        // Filter change listeners
+        document.getElementById('department_filter').addEventListener('change', function () {
+            const selectedDept = this.value;
+            const schemeSelect = document.getElementById('scheme_filter');
+
+            // Reset scheme filter
+            schemeSelect.value = '';
+
+            // Show/hide scheme options based on department
+            const schemeOptions = schemeSelect.querySelectorAll('option[data-department]');
+            schemeOptions.forEach(option => {
+                if (!selectedDept || option.getAttribute('data-department') === selectedDept) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+
+            loadDashboardData();
+        });
+
+        document.getElementById('scheme_filter').addEventListener('change', loadDashboardData);
+        document.getElementById('taluka_filter').addEventListener('change', loadDashboardData);
+
+        // Action buttons
+        document.getElementById('refreshBtn').addEventListener('click', loadDashboardData);
+        document.getElementById('exportBtn').addEventListener('click', exportDashboard);
+    }
+
+    // Load dashboard data based on filters
+    function loadDashboardData() {
+        showLoading();
+
+        const departmentFilter = document.getElementById('department_filter').value;
+        const schemeFilter = document.getElementById('scheme_filter').value;
+        const talukaFilter = document.getElementById('taluka_filter').value;
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (departmentFilter) params.append('department_id', departmentFilter);
+        if (schemeFilter) params.append('scheme_id', schemeFilter);
+        if (talukaFilter) params.append('taluka', talukaFilter);
+
+        const url = `/admin/api/dashboard-data?${params.toString()}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    allData = data.records;
+                    filteredData = allData;
+                    analyzeData();
+                    generateMetrics();
+                    generateCharts();
+                    generateInsights();
+                } else {
+                    console.error('Error loading dashboard data:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching dashboard data:', error);
+            })
+            .finally(() => {
+                hideLoading();
+            });
+    }
+
+    // Smart data analysis
+    function analyzeData() {
+        fieldAnalysis = {};
+
+        if (filteredData.length === 0) return;
+
+        // Analyze each field in custom_data
+        const allFields = new Set();
+        filteredData.forEach(record => {
+            if (record.custom_data) {
+                Object.keys(record.custom_data).forEach(field => {
+                    allFields.add(field);
+                });
+            }
+        });
+
+        allFields.forEach(fieldName => {
+            const fieldData = filteredData
+                .map(record => record.custom_data?.[fieldName])
+                .filter(value => value !== null && value !== undefined && value !== '');
+
+            if (fieldData.length === 0) return;
+
+            const analysis = {
+                name: fieldName,
+                type: detectFieldType(fieldData),
+                uniqueValues: [...new Set(fieldData)].length,
+                totalValues: fieldData.length,
+                sampleValues: [...new Set(fieldData)].slice(0, 10),
+                chartTypes: []
+            };
+
+            // Determine suitable chart types
+            if (analysis.type === 'temporal') {
+                // Temporal fields should always use line charts for time series
+                analysis.chartTypes.push('line', 'area');
+            } else if (analysis.type === 'categorical' && analysis.uniqueValues <= 10) {
+                analysis.chartTypes.push('pie', 'doughnut', 'bar');
+            } else if (analysis.type === 'categorical' && analysis.uniqueValues > 10) {
+                analysis.chartTypes.push('bar', 'horizontalBar');
+            } else if (analysis.type === 'numerical') {
+                analysis.chartTypes.push('histogram', 'boxplot', 'line');
+            }
+
+            fieldAnalysis[fieldName] = analysis;
+        });
+    }
+
+    // Detect field type
+    function detectFieldType(values) {
+        const sample = values.slice(0, 100);
+
+        // Check if it's a date - improved detection
+        const dateCount = sample.filter(val => {
+            if (!val) return false;
+
+            // Handle MongoDB date objects
+            if (val.$date) {
+                return true;
+            }
+
+            // Handle Date objects
+            if (val instanceof Date) {
+                return !isNaN(val.getTime());
+            }
+
+            // Handle date strings
+            const dateStr = val.toString();
+            const date = new Date(dateStr);
+
+            // Check if it's a valid date and matches common date patterns
+            return !isNaN(date.getTime()) && (
+                dateStr.match(/\d{4}-\d{2}-\d{2}/) || // YYYY-MM-DD
+                dateStr.match(/\d{2}\/\d{2}\/\d{4}/) || // MM/DD/YYYY
+                dateStr.match(/\d{2}-\d{2}-\d{4}/) || // MM-DD-YYYY
+                dateStr.includes('T') || // ISO format
+                dateStr.includes('GMT') || // GMT format
+                dateStr.includes('UTC') // UTC format
+            );
+        }).length;
+
+        if (dateCount > sample.length * 0.6) return 'temporal';
+
+        // Check if it's numerical
+        const numericCount = sample.filter(val => {
+            return !isNaN(parseFloat(val)) && isFinite(val);
+        }).length;
+
+        if (numericCount > sample.length * 0.8) return 'numerical';
+
+        // Check if it's boolean
+        const booleanCount = sample.filter(val => {
+            return val === true || val === false || val === 'true' || val === 'false';
+        }).length;
+
+        if (booleanCount > sample.length * 0.8) return 'boolean';
+
+        // Default to categorical
+        return 'categorical';
+    }
+
+    // Generate key metrics
+    function generateMetrics() {
+        const container = document.getElementById('metricsOverview');
+
+        const metrics = [
+            {
+                title: 'Total Records',
+                value: filteredData.length,
+                icon: 'fas fa-database',
+                color: 'info'
+            },
+            {
+                title: 'Active Schemes',
+                value: new Set(filteredData.map(r => r.scheme_name)).size,
+                icon: 'fas fa-layer-group',
+                color: 'success'
+            },
+            {
+                title: 'Departments',
+                value: new Set(filteredData.map(r => r.department_name)).size,
+                icon: 'fas fa-building',
+                color: 'warning'
+            },
+            {
+                title: 'Data Fields',
+                value: Object.keys(fieldAnalysis).length,
+                icon: 'fas fa-chart-bar',
+                color: 'danger'
+            }
+        ];
+
+        container.innerHTML = metrics.map(metric => `
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="metric-card ${metric.color}">
                 <div class="d-flex align-items-center">
@@ -601,30 +601,30 @@ function generateMetrics() {
             </div>
         </div>
     `).join('');
-}
+    }
 
-// Generate smart charts
-function generateCharts() {
-    const container = document.getElementById('chartsContainer');
-    container.innerHTML = '';
-    
-    // Destroy existing charts
-    Object.values(chartInstances).forEach(chart => {
-        if (chart && typeof chart.destroy === 'function') {
-            chart.destroy();
-        }
-    });
-    chartInstances = {};
-    
-    const chartFields = Object.entries(fieldAnalysis)
-        .filter(([name, analysis]) => analysis.chartTypes.length > 0)
-        .slice(0, 6); // Limit to 6 charts for performance
-    
-    chartFields.forEach(([fieldName, analysis], index) => {
-        const chartType = analysis.chartTypes[0]; // Use first suitable chart type
-        const chartId = `chart_${index}`;
-        
-        const chartHtml = `
+    // Generate smart charts
+    function generateCharts() {
+        const container = document.getElementById('chartsContainer');
+        container.innerHTML = '';
+
+        // Destroy existing charts
+        Object.values(chartInstances).forEach(chart => {
+            if (chart && typeof chart.destroy === 'function') {
+                chart.destroy();
+            }
+        });
+        chartInstances = {};
+
+        const chartFields = Object.entries(fieldAnalysis)
+            .filter(([name, analysis]) => analysis.chartTypes.length > 0)
+            .slice(0, 6); // Limit to 6 charts for performance
+
+        chartFields.forEach(([fieldName, analysis], index) => {
+            const chartType = analysis.chartTypes[0]; // Use first suitable chart type
+            const chartId = `chart_${index}`;
+
+            const chartHtml = `
             <div class="col-lg-6 col-xl-4 mb-4">
                 <div class="chart-container">
                     <div class="chart-header">
@@ -635,395 +635,395 @@ function generateCharts() {
                 </div>
             </div>
         `;
-        
-        container.insertAdjacentHTML('beforeend', chartHtml);
-        
-        // Generate chart data and create chart
-        setTimeout(() => {
-            createChart(chartId, fieldName, analysis, chartType);
-        }, 100);
-    });
-}
 
-// Create individual chart
-function createChart(canvasId, fieldName, analysis, chartType) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const chartData = prepareChartData(fieldName, analysis, chartType);
-    
-    if (!chartData) return;
-    
-    const config = {
-        type: chartType === 'histogram' ? 'bar' : chartType,
-        data: chartData,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                    position: 'bottom'
-                }
-            },
-            scales: chartType !== 'pie' && chartType !== 'doughnut' ? {
-                y: {
-                    beginAtZero: true
-                }
-            } : {}
-        }
-    };
-    
-    chartInstances[canvasId] = new Chart(ctx, config);
-}
+            container.insertAdjacentHTML('beforeend', chartHtml);
 
-// Prepare chart data
-function prepareChartData(fieldName, analysis, chartType) {
-    const fieldData = filteredData
-        .map(record => record.custom_data?.[fieldName])
-        .filter(value => value !== null && value !== undefined && value !== '');
-    
-    if (fieldData.length === 0) return null;
-    
-    if (analysis.type === 'categorical') {
-        const counts = {};
-        fieldData.forEach(value => {
-            counts[value] = (counts[value] || 0) + 1;
+            // Generate chart data and create chart
+            setTimeout(() => {
+                createChart(chartId, fieldName, analysis, chartType);
+            }, 100);
         });
-        
-        const labels = Object.keys(counts).slice(0, 10); // Limit to top 10
-        const data = labels.map(label => counts[label]);
-        
-        return {
-                        labels: labels,
-                        datasets: [{
-                label: formatFieldName(fieldName),
-                            data: data,
-                backgroundColor: generateColors(labels.length),
-                            borderWidth: 2,
-                borderColor: '#fff'
-            }]
+    }
+
+    // Create individual chart
+    function createChart(canvasId, fieldName, analysis, chartType) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const chartData = prepareChartData(fieldName, analysis, chartType);
+
+        if (!chartData) return;
+
+        const config = {
+            type: chartType === 'histogram' ? 'bar' : chartType,
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: chartType !== 'pie' && chartType !== 'doughnut' ? {
+                    y: {
+                        beginAtZero: true
+                    }
+                } : {}
+            }
         };
-    } else if (analysis.type === 'numerical') {
-        if (chartType === 'histogram') {
-            const numericData = fieldData.map(val => parseFloat(val)).filter(val => !isNaN(val));
-            const bins = createHistogramBins(numericData, 10);
-            
+
+        chartInstances[canvasId] = new Chart(ctx, config);
+    }
+
+    // Prepare chart data
+    function prepareChartData(fieldName, analysis, chartType) {
+        const fieldData = filteredData
+            .map(record => record.custom_data?.[fieldName])
+            .filter(value => value !== null && value !== undefined && value !== '');
+
+        if (fieldData.length === 0) return null;
+
+        if (analysis.type === 'categorical') {
+            const counts = {};
+            fieldData.forEach(value => {
+                counts[value] = (counts[value] || 0) + 1;
+            });
+
+            const labels = Object.keys(counts).slice(0, 10); // Limit to top 10
+            const data = labels.map(label => counts[label]);
+
             return {
-                labels: bins.labels,
+                labels: labels,
                 datasets: [{
                     label: formatFieldName(fieldName),
-                    data: bins.data,
-                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
+                    data: data,
+                    backgroundColor: generateColors(labels.length),
+                    borderWidth: 2,
+                    borderColor: '#fff'
                 }]
             };
-        } else {
-            // Line chart for numerical data over time
-            const sortedData = fieldData
-                .map(val => parseFloat(val))
-                .filter(val => !isNaN(val))
-                .sort((a, b) => a - b);
-            
-            return {
-                labels: sortedData.map((_, i) => i + 1),
-                datasets: [{
-                    label: formatFieldName(fieldName),
-                    data: sortedData,
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.1
-                }]
-            };
-        }
-    } else if (analysis.type === 'temporal') {
-        const dateCounts = {};
-        const validDates = [];
-        
-        fieldData.forEach(value => {
-            let date = null;
-            
-            // Handle MongoDB date objects
-            if (value && value.$date) {
-                date = new Date(value.$date);
+        } else if (analysis.type === 'numerical') {
+            if (chartType === 'histogram') {
+                const numericData = fieldData.map(val => parseFloat(val)).filter(val => !isNaN(val));
+                const bins = createHistogramBins(numericData, 10);
+
+                return {
+                    labels: bins.labels,
+                    datasets: [{
+                        label: formatFieldName(fieldName),
+                        data: bins.data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                };
+            } else {
+                // Line chart for numerical data over time
+                const sortedData = fieldData
+                    .map(val => parseFloat(val))
+                    .filter(val => !isNaN(val))
+                    .sort((a, b) => a - b);
+
+                return {
+                    labels: sortedData.map((_, i) => i + 1),
+                    datasets: [{
+                        label: formatFieldName(fieldName),
+                        data: sortedData,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1
+                    }]
+                };
             }
-            // Handle Date objects
-            else if (value instanceof Date) {
-                date = value;
-            }
-            // Handle date strings
-            else if (value) {
-                date = new Date(value);
-            }
-            
-            if (date && !isNaN(date.getTime())) {
-                validDates.push(date);
-                // Group by day for more granular view
-                const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                dateCounts[dayKey] = (dateCounts[dayKey] || 0) + 1;
-            }
-        });
-        
-        // If we have too many unique days, group by month instead
-        const uniqueDays = Object.keys(dateCounts).length;
-        let finalDateCounts = dateCounts;
-        
-        if (uniqueDays > 30) {
-            // Group by month for better visualization
-            finalDateCounts = {};
-            validDates.forEach(date => {
-                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                finalDateCounts[monthKey] = (finalDateCounts[monthKey] || 0) + 1;
+        } else if (analysis.type === 'temporal') {
+            const dateCounts = {};
+            const validDates = [];
+
+            fieldData.forEach(value => {
+                let date = null;
+
+                // Handle MongoDB date objects
+                if (value && value.$date) {
+                    date = new Date(value.$date);
+                }
+                // Handle Date objects
+                else if (value instanceof Date) {
+                    date = value;
+                }
+                // Handle date strings
+                else if (value) {
+                    date = new Date(value);
+                }
+
+                if (date && !isNaN(date.getTime())) {
+                    validDates.push(date);
+                    // Group by day for more granular view
+                    const dayKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    dateCounts[dayKey] = (dateCounts[dayKey] || 0) + 1;
+                }
             });
-        }
-        
-        const sortedDates = Object.keys(finalDateCounts).sort();
-        
-        // Format date labels for better readability
-        const formattedLabels = sortedDates.map(dateStr => {
-            if (dateStr.includes('-') && dateStr.split('-').length === 3) {
-                // Daily format: YYYY-MM-DD
-                const [year, month, day] = dateStr.split('-');
-                return `${day}/${month}/${year}`;
-            } else if (dateStr.includes('-') && dateStr.split('-').length === 2) {
-                // Monthly format: YYYY-MM
-                const [year, month] = dateStr.split('-');
-                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                return `${monthNames[parseInt(month) - 1]} ${year}`;
-            }
-            return dateStr;
-        });
-        
-        return {
-            labels: formattedLabels,
-                        datasets: [{
-                label: `${formatFieldName(fieldName)} Count`,
-                data: sortedDates.map(date => finalDateCounts[date]),
-                borderColor: 'rgba(255, 99, 132, 1)',
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                tension: 0.1,
-                fill: true
-            }]
-        };
-    }
-    
-    return null;
-}
 
-// Helper functions
-function formatFieldName(name) {
-    return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-}
+            // If we have too many unique days, group by month instead
+            const uniqueDays = Object.keys(dateCounts).length;
+            let finalDateCounts = dateCounts;
 
-function generateColors(count) {
-    const colors = [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-        '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
-    ];
-    return colors.slice(0, count);
-}
-
-function createHistogramBins(data, binCount) {
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    const binSize = (max - min) / binCount;
-    
-    const bins = Array(binCount).fill(0);
-    const labels = [];
-    
-    for (let i = 0; i < binCount; i++) {
-        const start = min + i * binSize;
-        const end = min + (i + 1) * binSize;
-        labels.push(`${start.toFixed(1)}-${end.toFixed(1)}`);
-    }
-    
-    data.forEach(value => {
-        const binIndex = Math.min(Math.floor((value - min) / binSize), binCount - 1);
-        bins[binIndex]++;
-    });
-    
-    return { labels, data: bins };
-}
-
-// Generate smart insights
-function generateInsights() {
-    const container = document.getElementById('insightsContainer');
-    const insights = [];
-    
-    // Data volume insights
-    if (filteredData.length > 1000) {
-        insights.push({
-            type: 'success',
-            title: 'Large Dataset',
-            message: `You have ${filteredData.length.toLocaleString()} records, providing robust statistical significance for analysis.`
-        });
-    } else if (filteredData.length < 50) {
-        insights.push({
-            type: 'warning',
-            title: 'Small Dataset',
-            message: `With only ${filteredData.length} records, consider expanding your data collection for more reliable insights.`
-        });
-    }
-    
-    // Field analysis insights
-    Object.entries(fieldAnalysis).forEach(([fieldName, analysis]) => {
-        if (analysis.type === 'categorical' && analysis.uniqueValues > 20) {
-            insights.push({
-                type: 'info',
-                title: 'High Cardinality Field',
-                message: `"${formatFieldName(fieldName)}" has ${analysis.uniqueValues} unique values. Consider grouping or filtering for better visualization.`
-            });
-        }
-        
-        if (analysis.type === 'numerical') {
-            const numericData = filteredData
-                .map(record => parseFloat(record.custom_data?.[fieldName]))
-                .filter(val => !isNaN(val));
-            
-            if (numericData.length > 0) {
-                const avg = numericData.reduce((a, b) => a + b, 0) / numericData.length;
-                const max = Math.max(...numericData);
-                const min = Math.min(...numericData);
-                
-                insights.push({
-                    type: 'info',
-                    title: `${formatFieldName(fieldName)} Statistics`,
-                    message: `Average: ${avg.toFixed(2)}, Range: ${min} - ${max}, Total values: ${numericData.length}`
+            if (uniqueDays > 30) {
+                // Group by month for better visualization
+                finalDateCounts = {};
+                validDates.forEach(date => {
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    finalDateCounts[monthKey] = (finalDateCounts[monthKey] || 0) + 1;
                 });
             }
+
+            const sortedDates = Object.keys(finalDateCounts).sort();
+
+            // Format date labels for better readability
+            const formattedLabels = sortedDates.map(dateStr => {
+                if (dateStr.includes('-') && dateStr.split('-').length === 3) {
+                    // Daily format: YYYY-MM-DD
+                    const [year, month, day] = dateStr.split('-');
+                    return `${day}/${month}/${year}`;
+                } else if (dateStr.includes('-') && dateStr.split('-').length === 2) {
+                    // Monthly format: YYYY-MM
+                    const [year, month] = dateStr.split('-');
+                    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    return `${monthNames[parseInt(month) - 1]} ${year}`;
+                }
+                return dateStr;
+            });
+
+            return {
+                labels: formattedLabels,
+                datasets: [{
+                    label: `${formatFieldName(fieldName)} Count`,
+                    data: sortedDates.map(date => finalDateCounts[date]),
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            };
         }
-    });
-    
-    // Data quality insights
-    const totalFields = Object.keys(fieldAnalysis).length;
-    const completeRecords = filteredData.filter(record => {
-        if (!record.custom_data) return false;
-        return Object.keys(record.custom_data).length === totalFields;
-    }).length;
-    
-    const completeness = (completeRecords / filteredData.length) * 100;
-    
-    if (completeness < 80) {
-        insights.push({
-            type: 'warning',
-            title: 'Data Completeness',
-            message: `Only ${completeness.toFixed(1)}% of records have complete data. Consider data validation improvements.`
-        });
+
+        return null;
     }
-    
-    // Render insights
-    container.innerHTML = insights.map(insight => `
+
+    // Helper functions
+    function formatFieldName(name) {
+        return name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    function generateColors(count) {
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+        ];
+        return colors.slice(0, count);
+    }
+
+    function createHistogramBins(data, binCount) {
+        const min = Math.min(...data);
+        const max = Math.max(...data);
+        const binSize = (max - min) / binCount;
+
+        const bins = Array(binCount).fill(0);
+        const labels = [];
+
+        for (let i = 0; i < binCount; i++) {
+            const start = min + i * binSize;
+            const end = min + (i + 1) * binSize;
+            labels.push(`${start.toFixed(1)}-${end.toFixed(1)}`);
+        }
+
+        data.forEach(value => {
+            const binIndex = Math.min(Math.floor((value - min) / binSize), binCount - 1);
+            bins[binIndex]++;
+        });
+
+        return { labels, data: bins };
+    }
+
+    // Generate smart insights
+    function generateInsights() {
+        const container = document.getElementById('insightsContainer');
+        const insights = [];
+
+        // Data volume insights
+        if (filteredData.length > 1000) {
+            insights.push({
+                type: 'success',
+                title: 'Large Dataset',
+                message: `You have ${filteredData.length.toLocaleString()} records, providing robust statistical significance for analysis.`
+            });
+        } else if (filteredData.length < 50) {
+            insights.push({
+                type: 'warning',
+                title: 'Small Dataset',
+                message: `With only ${filteredData.length} records, consider expanding your data collection for more reliable insights.`
+            });
+        }
+
+        // Field analysis insights
+        Object.entries(fieldAnalysis).forEach(([fieldName, analysis]) => {
+            if (analysis.type === 'categorical' && analysis.uniqueValues > 20) {
+                insights.push({
+                    type: 'info',
+                    title: 'High Cardinality Field',
+                    message: `"${formatFieldName(fieldName)}" has ${analysis.uniqueValues} unique values. Consider grouping or filtering for better visualization.`
+                });
+            }
+
+            if (analysis.type === 'numerical') {
+                const numericData = filteredData
+                    .map(record => parseFloat(record.custom_data?.[fieldName]))
+                    .filter(val => !isNaN(val));
+
+                if (numericData.length > 0) {
+                    const avg = numericData.reduce((a, b) => a + b, 0) / numericData.length;
+                    const max = Math.max(...numericData);
+                    const min = Math.min(...numericData);
+
+                    insights.push({
+                        type: 'info',
+                        title: `${formatFieldName(fieldName)} Statistics`,
+                        message: `Average: ${avg.toFixed(2)}, Range: ${min} - ${max}, Total values: ${numericData.length}`
+                    });
+                }
+            }
+        });
+
+        // Data quality insights
+        const totalFields = Object.keys(fieldAnalysis).length;
+        const completeRecords = filteredData.filter(record => {
+            if (!record.custom_data) return false;
+            return Object.keys(record.custom_data).length === totalFields;
+        }).length;
+
+        const completeness = (completeRecords / filteredData.length) * 100;
+
+        if (completeness < 80) {
+            insights.push({
+                type: 'warning',
+                title: 'Data Completeness',
+                message: `Only ${completeness.toFixed(1)}% of records have complete data. Consider data validation improvements.`
+            });
+        }
+
+        // Render insights
+        container.innerHTML = insights.map(insight => `
         <div class="insight-card ${insight.type}">
             <h6 class="mb-2">${insight.title}</h6>
             <p class="mb-0">${insight.message}</p>
                 </div>
             `).join('');
-        }
+    }
 
-// Utility functions
-function showLoading() {
-    document.getElementById('loadingOverlay').style.display = 'flex';
-}
+    // Utility functions
+    function showLoading() {
+        document.getElementById('loadingOverlay').style.display = 'flex';
+    }
 
-function hideLoading() {
-    document.getElementById('loadingOverlay').style.display = 'none';
-}
+    function hideLoading() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
 
-function exportDashboard() {
-    // Update report header with current data
-    updateReportHeader();
-    
-    // Show loading
-    showLoading();
-    
-    // Wait for charts to render
-    setTimeout(() => {
-        generatePDFReport();
-    }, 1000);
-}
+    function exportDashboard() {
+        // Update report header with current data
+        updateReportHeader();
 
-function updateReportHeader() {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
-    
-    document.getElementById('reportDate').textContent = dateStr;
-    document.getElementById('reportRecordCount').textContent = filteredData.length.toLocaleString();
-    document.getElementById('reportFieldCount').textContent = Object.keys(fieldAnalysis).length;
-}
+        // Show loading
+        showLoading();
 
-function generatePDFReport() {
-    const reportElement = document.getElementById('reportContent');
-    const reportHeader = document.getElementById('reportHeader');
-    
-    // Temporarily show the header for PDF capture
-    reportHeader.style.display = 'block';
-    
-    // Configure html2canvas options
-    const canvasOptions = {
-        scale: 1.5, // Balanced quality and performance
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: reportElement.scrollWidth,
-        height: reportElement.scrollHeight,
-        scrollX: 0,
-        scrollY: 0
-    };
-    
-    html2canvas(reportElement, canvasOptions).then(canvas => {
-        try {
-            // Create PDF with custom page size to fit the entire content
-            const { jsPDF } = window.jspdf;
-            
-            // Calculate dimensions
-            const imgWidth = 210; // A4 width in mm
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
-            // Create PDF with custom height to fit the entire content
-            const pdf = new jsPDF({
-                orientation: imgHeight > 297 ? 'portrait' : 'portrait',
-                unit: 'mm',
-                format: [210, Math.max(297, imgHeight + 20)] // Add 20mm margin
-            });
-            
-            // Convert canvas to image
-            const imgData = canvas.toDataURL('image/png', 0.9);
-            
-            // Add the entire image to the single page
-            pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-            
-            // Generate filename with current date and filters
-            const department = document.getElementById('department_filter').value || 'ALL';
-            const scheme = document.getElementById('scheme_filter').value || 'ALL';
-            const taluka = document.getElementById('taluka_filter').value || 'ALL';
-            const dateStr = new Date().toISOString().split('T')[0];
-            
-            const filename = `Dashboard-Report-${dateStr}-${department}-${scheme}-${taluka}.pdf`;
-            
-            // Download PDF
-            pdf.save(filename);
-            
+        // Wait for charts to render
+        setTimeout(() => {
+            generatePDFReport();
+        }, 1000);
+    }
+
+    function updateReportHeader() {
+        const now = new Date();
+        const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+
+        document.getElementById('reportDate').textContent = dateStr;
+        document.getElementById('reportRecordCount').textContent = filteredData.length.toLocaleString();
+        document.getElementById('reportFieldCount').textContent = Object.keys(fieldAnalysis).length;
+    }
+
+    function generatePDFReport() {
+        const reportElement = document.getElementById('reportContent');
+        const reportHeader = document.getElementById('reportHeader');
+
+        // Temporarily show the header for PDF capture
+        reportHeader.style.display = 'block';
+
+        // Configure html2canvas options
+        const canvasOptions = {
+            scale: 1.5, // Balanced quality and performance
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            width: reportElement.scrollWidth,
+            height: reportElement.scrollHeight,
+            scrollX: 0,
+            scrollY: 0
+        };
+
+        html2canvas(reportElement, canvasOptions).then(canvas => {
+            try {
+                // Create PDF with custom page size to fit the entire content
+                const { jsPDF } = window.jspdf;
+
+                // Calculate dimensions
+                const imgWidth = 210; // A4 width in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+                // Create PDF with custom height to fit the entire content
+                const pdf = new jsPDF({
+                    orientation: imgHeight > 297 ? 'portrait' : 'portrait',
+                    unit: 'mm',
+                    format: [210, Math.max(297, imgHeight + 20)] // Add 20mm margin
+                });
+
+                // Convert canvas to image
+                const imgData = canvas.toDataURL('image/png', 0.9);
+
+                // Add the entire image to the single page
+                pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+
+                // Generate filename with current date and filters
+                const department = document.getElementById('department_filter').value || 'ALL';
+                const scheme = document.getElementById('scheme_filter').value || 'ALL';
+                const taluka = document.getElementById('taluka_filter').value || 'ALL';
+                const dateStr = new Date().toISOString().split('T')[0];
+
+                const filename = `Dashboard-Report-${dateStr}-${department}-${scheme}-${taluka}.pdf`;
+
+                // Download PDF
+                pdf.save(filename);
+
+                // Hide the header again
+                reportHeader.style.display = 'none';
+
+                hideLoading();
+
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                // Hide the header again
+                reportHeader.style.display = 'none';
+                hideLoading();
+                alert('Error generating PDF report. Please try again.');
+            }
+        }).catch(error => {
+            console.error('Error capturing content:', error);
             // Hide the header again
             reportHeader.style.display = 'none';
-            
             hideLoading();
-            
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            // Hide the header again
-            reportHeader.style.display = 'none';
-            hideLoading();
-            alert('Error generating PDF report. Please try again.');
-        }
-    }).catch(error => {
-        console.error('Error capturing content:', error);
-        // Hide the header again
-        reportHeader.style.display = 'none';
-        hideLoading();
-        alert('Error capturing dashboard content. Please try again.');
-    });
-}
-    </script>
+            alert('Error capturing dashboard content. Please try again.');
+        });
+    }
+</script>
 {% endblock %}
