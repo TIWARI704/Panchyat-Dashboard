@@ -66,6 +66,22 @@ body {
     font-size: 0.9rem;
 }
 
+/* Flash Messages */
+.flash-messages {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1050;
+    max-width: 400px;
+}
+
+.flash-messages .alert {
+    margin-bottom: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    border: none;
+    border-radius: 10px;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
     .sidebar {
@@ -76,5 +92,12 @@ body {
     
     .main-content-wrapper {
         margin-left: 0;
+    }
+    
+    .flash-messages {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
     }
 }

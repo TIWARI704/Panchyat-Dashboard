@@ -22,6 +22,20 @@ intialize(mongo)
 intialize_admin(mongo)
 intialize_user(mongo)
 
+# Initialize sample data if it doesn't exist
+try:
+    from scripts.create_sample_data import create_sample_data
+    create_sample_data(mongo)
+except Exception as e:
+    print(f"Warning: Could not initialize sample data: {e}")
+
+# Create default user if none exists
+try:
+    from scripts.create_default_user import create_default_user
+    create_default_user(mongo)
+except Exception as e:
+    print(f"Warning: Could not create default user: {e}")
+
 app.register_blueprint(login_bp, url_prefix="/auth")
 app.register_blueprint(admin_bp, url_prefix="/admin")
 app.register_blueprint(user_bp, url_prefix="/user")

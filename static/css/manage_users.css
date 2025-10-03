@@ -1,0 +1,218 @@
+/* Custom multiselect styles for manage users page */
+.custom-multiselect {
+    position: relative;
+    width: 100%;
+}
+
+.custom-multiselect .select-display {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #fff;
+    cursor: pointer;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.custom-multiselect .select-display::after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    margin-left: auto;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.custom-multiselect .select-display:hover {
+    border-color: #86b7fe;
+}
+
+.custom-multiselect .select-display:focus,
+.custom-multiselect .select-display.active {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    outline: 0;
+}
+
+.custom-multiselect .selected-text {
+    flex: 1;
+}
+
+.custom-multiselect .clear-selection {
+    color: #dc3545;
+    cursor: pointer;
+    font-size: 0.875rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-right: 8px;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.custom-multiselect .clear-selection:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.custom-multiselect .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    width: 100%;
+    padding: 0.5rem 0;
+    margin: 0;
+    background-color: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+    display: none;
+}
+
+.custom-multiselect .dropdown-menu.show {
+    display: block;
+    animation: dropdownFadeIn 0.2s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.custom-multiselect .dropdown-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+    display: block;
+    width: 100%;
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+}
+
+.custom-multiselect .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.custom-multiselect .dropdown-item:active {
+    background-color: #e9ecef;
+}
+
+.custom-multiselect .form-check {
+    margin-bottom: 0;
+    padding-left: 0;
+    display: flex;
+    align-items: center;
+}
+
+.custom-multiselect .form-check-input {
+    margin-top: 0;
+    margin-right: 0.5rem;
+    cursor: pointer;
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+}
+
+.custom-multiselect .form-check-label {
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 0;
+    flex: 1;
+}
+
+.custom-multiselect .select-all-option {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    margin-bottom: 0.25rem;
+}
+
+.custom-multiselect .select-all-option .dropdown-item {
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+}
+
+.custom-multiselect .dropdown-item-text {
+    padding: 0.5rem 1rem;
+    background-color: #e9ecef;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #0d6efd;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    margin-top: 0.25rem;
+}
+
+.custom-multiselect .dropdown-item-text:first-of-type {
+    margin-top: 0;
+}
+
+.custom-multiselect .dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Scrollbar styling */
+.custom-multiselect .dropdown-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.custom-multiselect .dropdown-menu::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+    margin: 4px 0;
+}
+
+.custom-multiselect .dropdown-menu::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.custom-multiselect .dropdown-menu::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Make the entire form check area clickable */
+.custom-multiselect .form-check {
+    width: 100%;
+}
+
+/* Ensure proper spacing */
+.custom-multiselect .ms-3 {
+    margin-left: 1rem !important;
+}
+
+/* Selected state styling */
+.custom-multiselect .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* Disabled state */
+.custom-multiselect .form-check-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.custom-multiselect .form-check-input:disabled ~ .form-check-label {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

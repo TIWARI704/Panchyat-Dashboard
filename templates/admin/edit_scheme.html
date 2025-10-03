@@ -1,0 +1,261 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Edit Scheme - Panchayat Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Edit Scheme</h2>
+    <a href="{{ url_for('admin.manage_schemes') }}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back to Schemes
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Scheme Details</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('admin.edit_scheme', scheme_id=scheme._id) }}" id="editSchemeForm">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Scheme Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ scheme.name }}" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="department_id" class="form-label">Department *</label>
+                        <select class="form-select" id="department_id" name="department_id" required>
+                            <option value="">Select Department</option>
+                            {% for department in departments %}
+                            <option value="{{ department._id }}" 
+                                    {% if department._id|string == scheme.department_id|string %}selected{% endif %}>
+                                {{ department.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3">{{ scheme.description or '' }}</textarea>
+            </div>
+            
+            <!-- Attributes Section -->
+            <div class="mb-3">
+                <label class="form-label">Scheme Attributes</label>
+                <div id="attributes-container">
+                    {% for attribute in scheme.attributes %}
+                    <div class="attribute-row border p-3 mb-2 rounded">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="form-label">Field Name</label>
+                                <input type="text" class="form-control attribute-name" 
+                                       value="{{ attribute.name }}" placeholder="e.g., beneficiary_age">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Display Label</label>
+                                <input type="text" class="form-control attribute-label" 
+                                       value="{{ attribute.label }}" placeholder="e.g., Beneficiary Age">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Data Type</label>
+                                <select class="form-select attribute-type" data-modern-multiselect data-placeholder="Select type...">
+                                    <option value="string" {% if attribute.type == 'string' %}selected{% endif %}>Text</option>
+                                    <option value="int" {% if attribute.type == 'int' %}selected{% endif %}>Number</option>
+                                    <option value="float" {% if attribute.type == 'float' %}selected{% endif %}>Decimal</option>
+                                    <option value="date" {% if attribute.type == 'date' %}selected{% endif %}>Date</option>
+                                    <option value="boolean" {% if attribute.type == 'boolean' %}selected{% endif %}>Yes/No</option>
+                                    <option value="enum" {% if attribute.type == 'enum' %}selected{% endif %}>Dropdown</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Options (for Dropdown)</label>
+                                <input type="text" class="form-control attribute-options" 
+                                       value="{% if attribute.options %}{{ attribute.options|join(',') }}{% endif %}"
+                                       placeholder="option1,option2,option3" 
+                                       style="{% if attribute.type != 'enum' %}display: none;{% endif %}">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-attribute">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if not scheme.attributes %}
+                    <div class="attribute-row border p-3 mb-2 rounded">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label class="form-label">Field Name</label>
+                                <input type="text" class="form-control attribute-name" placeholder="e.g., beneficiary_age">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Display Label</label>
+                                <input type="text" class="form-control attribute-label" placeholder="e.g., Beneficiary Age">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Data Type</label>
+                                <select class="form-select attribute-type" data-modern-multiselect data-placeholder="Select type...">
+                                    <option value="string">Text</option>
+                                    <option value="int">Number</option>
+                                    <option value="float">Decimal</option>
+                                    <option value="date">Date</option>
+                                    <option value="boolean">Yes/No</option>
+                                    <option value="enum">Dropdown</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Options (for Dropdown)</label>
+                                <input type="text" class="form-control attribute-options" placeholder="option1,option2,option3" style="display: none;">
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-attribute" style="display: none;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="add-attribute">
+                    <i class="fas fa-plus"></i> Add Attribute
+                </button>
+            </div>
+            
+            <div class="text-end">
+                <a href="{{ url_for('admin.manage_schemes') }}" class="btn btn-secondary me-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">Update Scheme</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addAttributeBtn = document.getElementById('add-attribute');
+    const attributesContainer = document.getElementById('attributes-container');
+    
+    // Add attribute row
+    addAttributeBtn.addEventListener('click', function() {
+        const newRow = document.createElement('div');
+        newRow.className = 'attribute-row border p-3 mb-2 rounded';
+        newRow.innerHTML = `
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">Field Name</label>
+                    <input type="text" class="form-control attribute-name" placeholder="e.g., beneficiary_age">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Display Label</label>
+                    <input type="text" class="form-control attribute-label" placeholder="e.g., Beneficiary Age">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Data Type</label>
+                    <select class="form-select attribute-type" data-modern-multiselect data-placeholder="Select type...">
+                        <option value="string">Text</option>
+                        <option value="int">Number</option>
+                        <option value="float">Decimal</option>
+                        <option value="date">Date</option>
+                        <option value="boolean">Yes/No</option>
+                        <option value="enum">Dropdown</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Options (for Dropdown)</label>
+                    <input type="text" class="form-control attribute-options" placeholder="option1,option2,option3" style="display: none;">
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-attribute">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        attributesContainer.appendChild(newRow);
+        updateRemoveButtons();
+    });
+    
+    // Remove attribute row
+    attributesContainer.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-attribute')) {
+            e.target.closest('.attribute-row').remove();
+            updateRemoveButtons();
+        }
+    });
+    
+    // Show/hide options field based on data type
+    attributesContainer.addEventListener('change', function(e) {
+        if (e.target.classList.contains('attribute-type')) {
+            const row = e.target.closest('.attribute-row');
+            const optionsField = row.querySelector('.attribute-options');
+            if (e.target.value === 'enum') {
+                optionsField.style.display = 'block';
+            } else {
+                optionsField.style.display = 'none';
+            }
+        }
+    });
+    
+    // Form submission
+    document.getElementById('editSchemeForm').addEventListener('submit', function(e) {
+        const attributes = [];
+        const attributeRows = attributesContainer.querySelectorAll('.attribute-row');
+        
+        attributeRows.forEach(row => {
+            const name = row.querySelector('.attribute-name').value.trim();
+            const label = row.querySelector('.attribute-label').value.trim();
+            const type = row.querySelector('.attribute-type').value;
+            const options = row.querySelector('.attribute-options').value.trim();
+            
+            if (name && label && type) {
+                const attribute = {
+                    name: name,
+                    label: label,
+                    type: type,
+                    required: false
+                };
+                
+                if (type === 'enum' && options) {
+                    attribute.options = options.split(',').map(opt => opt.trim());
+                }
+                
+                attributes.push(attribute);
+            }
+        });
+        
+        // Add hidden input for attributes
+        const attributesInput = document.createElement('input');
+        attributesInput.type = 'hidden';
+        attributesInput.name = 'attributes';
+        attributesInput.value = JSON.stringify(attributes);
+        this.appendChild(attributesInput);
+    });
+    
+    function updateRemoveButtons() {
+        const attributeRows = attributesContainer.querySelectorAll('.attribute-row');
+        attributeRows.forEach(row => {
+            const removeBtn = row.querySelector('.remove-attribute');
+            if (attributeRows.length > 1) {
+                removeBtn.style.display = 'block';
+            } else {
+                removeBtn.style.display = 'none';
+            }
+        });
+    }
+    
+    // Initialize
+    updateRemoveButtons();
+});
+</script>
+{% endblock %}
