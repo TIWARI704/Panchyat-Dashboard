@@ -1391,26 +1391,89 @@ def get_departments_for_user_creation():
 
 @admin_bp.route('/api/schemes-for-user-creation')
 @login_required
-@superadmin_required
+@admin_required
 def get_schemes_for_user_creation():
-    """Get all schemes for user creation form"""
+    """API endpoint to get schemes available for the logged-in user to create records"""
     try:
-        result = Scheme.get_all_schemes(mongo, active_only=True)
-        if result['success']:
-            schemes = []
-            for scheme in result['schemes']:
-                schemes.append({
-                    'id': str(scheme['_id']),
-                    'name': scheme['name'],
-                    'department_id': str(scheme['department_id']),
-                    'department_name': scheme.get('department_name', 'Unknown'),
-                    'description': scheme.get('description', '')
-                })
-            return jsonify({'success': True, 'schemes': schemes})
+        user_id = session.get('user_id')
+        user_access = User.get_user_access_info(mongo, user_id)
+        
+        print(f"DEBUG SCHEMES_FOR_CREATION - User ID: {user_id}")
+        print(f"DEBUG SCHEMES_FOR_CREATION - User Access: {user_access}")
+        
+        if not user_access:
+            return jsonify({
+                'success': False,
+                'message': 'User access information not found'
+            })
+        
+        schemes = []
+        
+        # Check if user has all access or is superadmin
+        if user_access.get('has_all_access') or user_access.get('is_superadmin'):
+            # Get all active schemes
+            print(f"DEBUG SCHEMES_FOR_CREATION - Loading all schemes (superadmin/all access)")
+            schemes_result = Scheme.get_all_schemes(mongo, active_only=True)
+            if schemes_result['success']:
+                schemes = schemes_result['schemes']
         else:
-            return jsonify({'success': False, 'message': result['message']})
+            # Get only schemes the user has access to
+            scheme_access = user_access.get('scheme_access', [])
+            print(f"DEBUG SCHEMES_FOR_CREATION - User scheme access: {scheme_access}")
+            
+            if scheme_access and 'all' not in scheme_access:
+                try:
+                    # Convert scheme IDs to ObjectId
+                    scheme_object_ids = [ObjectId(s) for s in scheme_access if s != 'all']
+                    
+                    # Fetch schemes from database
+                    schemes = list(mongo.db.schemes.find({
+                        '_id': {'$in': scheme_object_ids},
+                        'is_active': True
+                    }).sort('name', 1))
+                    
+                    print(f"DEBUG SCHEMES_FOR_CREATION - Loaded {len(schemes)} schemes for admin")
+                except Exception as e:
+                    print(f"ERROR SCHEMES_FOR_CREATION - Converting scheme IDs: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    schemes = []
+            elif 'all' in scheme_access:
+                # User has 'all' access - get all schemes
+                print(f"DEBUG SCHEMES_FOR_CREATION - User has 'all' scheme access")
+                schemes_result = Scheme.get_all_schemes(mongo, active_only=True)
+                if schemes_result['success']:
+                    schemes = schemes_result['schemes']
+        
+        # Get department information for each scheme
+        schemes_with_dept = []
+        for scheme in schemes:
+            dept = mongo.db.departments.find_one({'_id': scheme.get('department_id')})
+            
+            schemes_with_dept.append({
+                'id': str(scheme['_id']),
+                'name': scheme['name'],
+                'description': scheme.get('description', ''),
+                'department_id': str(scheme.get('department_id')),
+                'department_name': dept['name'] if dept else 'Unknown Department',
+                'attributes': scheme.get('attributes', [])
+            })
+        
+        print(f"DEBUG SCHEMES_FOR_CREATION - Returning {len(schemes_with_dept)} schemes")
+        
+        return jsonify({
+            'success': True,
+            'schemes': schemes_with_dept
+        })
+        
     except Exception as e:
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+        print(f"ERROR in get_schemes_for_user_creation: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error fetching schemes: {str(e)}'
+        })
 
 @admin_bp.route('/api/superadmin-filter-data')
 @login_required
@@ -1493,18 +1556,21 @@ def get_superadmin_filter_data():
 @login_required
 @admin_required
 def get_filtered_records_api():
-    """API endpoint to get filtered records for superadmin"""
+    """API endpoint to get filtered records for all admins"""
     try:
         # Get filter parameters from query string
         department_id = request.args.get('department_id')
         scheme_id = request.args.get('scheme_id')
         taluka = request.args.get('taluka')
-        user_id = request.args.get('user_id')
+        
+        # Get user ID for access filtering
+        user_id = session.get('user_id')
+        
         # Convert to lists for the get_all_records method
         department_ids = [department_id] if department_id else None
         scheme_ids = [scheme_id] if scheme_id else None
         
-        # Get filtered records with department and scheme names
+        # Get filtered records with user access control
         result = PanchayatRecord.get_all_records(
             mongo, 
             page=1, 
@@ -1516,18 +1582,31 @@ def get_filtered_records_api():
         )
         
         if result['success']:
+            # Convert ObjectId to string for JSON serialization
+            records = result['records']
+            for record in records:
+                if '_id' in record:
+                    record['_id'] = {'$oid': str(record['_id'])} if not isinstance(record['_id'], dict) else record['_id']
+                if 'department_id' in record:
+                    record['department_id'] = {'$oid': str(record['department_id'])} if not isinstance(record['department_id'], dict) else record['department_id']
+                if 'scheme_id' in record:
+                    record['scheme_id'] = {'$oid': str(record['scheme_id'])} if not isinstance(record['scheme_id'], dict) else record['scheme_id']
+            
             return jsonify({
                 'success': True,
-                'records': result['records'],
+                'records': records,
                 'total_records': result['total_records']
             })
         else:
             return jsonify({
                 'success': False,
-                'message': result['message']
+                'message': result.get('message', 'Unknown error')
             })
         
     except Exception as e:
+        print(f"ERROR in get_filtered_records_api: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error fetching filtered records: {str(e)}'
@@ -1543,37 +1622,51 @@ def get_dashboard_data_api():
         department_id = request.args.get('department_id')
         scheme_id = request.args.get('scheme_id')
         taluka = request.args.get('taluka')
-
-        user_id = request.args.get('user_id')
+        
+        # Get user ID for access filtering
+        user_id = session.get('user_id')
         
         # Convert to lists for the get_all_records method
         department_ids = [department_id] if department_id else None
         scheme_ids = [scheme_id] if scheme_id else None
         
-        # Get filtered records with department and scheme names
+        # Get filtered records with user access control
         result = PanchayatRecord.get_all_records(
             mongo, 
             page=1, 
-            per_page=10000,
+            per_page=100000,  # Get all records for dashboard
             department_ids=department_ids,
             scheme_ids=scheme_ids,
             taluka_filter=taluka,
-            user_id=user_id
+            user_id=user_id  # IMPORTANT: Pass user_id for access filtering
         )
         
         if result['success']:
+            # Convert ObjectId to string for JSON serialization
+            records = result['records']
+            for record in records:
+                if '_id' in record:
+                    record['_id'] = str(record['_id'])
+                if 'department_id' in record:
+                    record['department_id'] = str(record['department_id'])
+                if 'scheme_id' in record:
+                    record['scheme_id'] = str(record['scheme_id'])
+            
             return jsonify({
                 'success': True,
-                'records': result['records'],
+                'records': records,
                 'total_records': result['total_records']
             })
         else:
             return jsonify({
                 'success': False,
-                'message': result['message']
+                'message': result.get('message', 'Unknown error')
             })
         
     except Exception as e:
+        print(f"Error in get_dashboard_data_api: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error fetching dashboard data: {str(e)}'

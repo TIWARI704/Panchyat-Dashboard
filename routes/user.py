@@ -12,6 +12,7 @@ from models.department import Department
 from models.scheme import Scheme
 from routes.login import login_required
 from datetime import datetime
+from bson import ObjectId
 
 # Initialize user blueprint
 user_bp = Blueprint('user', __name__)
@@ -183,45 +184,177 @@ def add_record():
 @user_bp.route('/view-records')
 @login_required
 def view_records():
-    """
-    View Records
-    
-    Displays records that the user has access to based on their department
-    and scheme permissions. Includes pagination and search functionality.
-    """
+    """View records based on user's department and scheme access with pagination and search"""
     try:
         page = int(request.args.get('page', 1))
         search = request.args.get('search', '')
         per_page = 10
         
-        # Use PanchayatRecord model to get records with user access filtering
-        result = PanchayatRecord.get_all_records(
-            mongo, 
-            page=page, 
-            per_page=per_page, 
-            search=search,
-            user_id=session.get('user_id')  # Pass user_id for access filtering
+        user_id = session.get('user_id')
+        
+        # Get user access information
+        user_access = User.get_user_access_info(mongo, user_id)
+        
+        if not user_access:
+            flash('Error loading user access information.', 'error')
+            return render_template(
+                'user/view_records.html',
+                records=[],
+                total_records=0,
+                page=1,
+                total_pages=0,
+                search=''
+            )
+        
+        # Build base query
+        query = {'is_active': True}
+        
+        # Apply department and scheme access filters
+        department_access = user_access.get('department_access', [])
+        scheme_access = user_access.get('scheme_access', [])
+        
+        # Check if user has all access
+        has_all_access = user_access.get('has_all_access', False) or user_access.get('is_superadmin', False)
+        
+        if not has_all_access:
+            # Apply department filter if user doesn't have 'all' access
+            if department_access and 'all' not in department_access:
+                try:
+                    valid_dept_ids = [ObjectId(dep_id) for dep_id in department_access if dep_id != 'all']
+                    if valid_dept_ids:
+                        query['department_id'] = {'$in': valid_dept_ids}
+                    else:
+                        return render_template(
+                            'user/view_records.html',
+                            records=[],
+                            total_records=0,
+                            page=1,
+                            total_pages=0,
+                            search=''
+                        )
+                except Exception as e:
+                    print(f"ERROR USER_VIEW_RECORDS - Converting department IDs: {e}")
+                    flash('Error loading records: Invalid department access', 'error')
+                    return render_template(
+                        'user/view_records.html',
+                        records=[],
+                        total_records=0,
+                        page=1,
+                        total_pages=0,
+                        search=''
+                    )
+            
+            # Apply scheme filter if user doesn't have 'all' access
+            if scheme_access and 'all' not in scheme_access:
+                try:
+                    valid_scheme_ids = [ObjectId(scheme_id) for scheme_id in scheme_access if scheme_id != 'all']
+                    if valid_scheme_ids:
+                        query['scheme_id'] = {'$in': valid_scheme_ids}
+                    else:
+                        return render_template(
+                            'user/view_records.html',
+                            records=[],
+                            total_records=0,
+                            page=1,
+                            total_pages=0,
+                            search=''
+                        )
+                except Exception as e:
+                    print(f"ERROR USER_VIEW_RECORDS - Converting scheme IDs: {e}")
+                    flash('Error loading records: Invalid scheme access', 'error')
+                    return render_template(
+                        'user/view_records.html',
+                        records=[],
+                        total_records=0,
+                        page=1,
+                        total_pages=0,
+                        search=''
+                    )
+        else:
+            print(f"DEBUG USER_VIEW_RECORDS - User has all access, no filtering applied")
+        
+        # Add search conditions if search query exists
+        if search:
+            search_conditions = []
+            
+            # Search in custom_data fields (as string to search all fields)
+            search_conditions.append({'custom_data': {'$regex': search, '$options': 'i'}})
+            
+            # Combine with existing query using $and
+            if len(query) > 1:  # If we already have filters (department/scheme)
+                existing_filters = [{k: v} for k, v in query.items() if k != 'is_active']
+                query = {
+                    'is_active': True,
+                    '$and': existing_filters + [{'$or': search_conditions}]
+                }
+            else:
+                # Only is_active filter exists
+                query['$or'] = search_conditions
+        
+        # Calculate pagination
+        skip = (page - 1) * per_page
+        
+        # Get records with department and scheme names using aggregation
+        pipeline = [
+            {'$match': query},
+            {'$lookup': {
+                'from': 'departments',
+                'localField': 'department_id',
+                'foreignField': '_id',
+                'as': 'department'
+            }},
+            {'$lookup': {
+                'from': 'schemes',
+                'localField': 'scheme_id',
+                'foreignField': '_id',
+                'as': 'scheme'
+            }},
+            {'$addFields': {
+                'department_name': {'$arrayElemAt': ['$department.name', 0]},
+                'scheme_name': {'$arrayElemAt': ['$scheme.name', 0]}
+            }},
+            {'$sort': {'created_at': -1}},
+            {'$skip': skip},
+            {'$limit': per_page}
+        ]
+        
+        records = list(mongo.db.panchayat_records.aggregate(pipeline))
+        
+        # Get total count
+        total_records = mongo.db.panchayat_records.count_documents(query)
+        total_pages = (total_records + per_page - 1) // per_page
+        
+        # Convert ObjectId to string for template
+        for record in records:
+            if '_id' in record and isinstance(record['_id'], ObjectId):
+                record['_id'] = {'$oid': str(record['_id'])}
+            if 'department_id' in record and isinstance(record['department_id'], ObjectId):
+                record['department_id'] = str(record['department_id'])
+            if 'scheme_id' in record and isinstance(record['scheme_id'], ObjectId):
+                record['scheme_id'] = str(record['scheme_id'])
+        
+        return render_template(
+            'user/view_records.html',
+            records=records,
+            total_records=total_records,
+            page=page,
+            total_pages=total_pages,
+            search=search
         )
         
-        if result['success']:
-            return render_template('user/view_records.html', 
-                                 records=result['records'],
-                                 page=result['page'],
-                                 total_records=result['total_records'],
-                                 total_pages=result['total_pages'],
-                                 search=search)
-        else:
-            flash('Error loading records', 'error')
-            return render_template('user/view_records.html', records=[], page=1, 
-                                 total_records=0, total_pages=0, search='')
-            
     except Exception as e:
-        print(f"User view records error: {e}")
+        print(f"ERROR in user view_records: {e}")
         import traceback
         traceback.print_exc()
-        flash('Error loading records', 'error')
-        return render_template('user/view_records.html', records=[], page=1, 
-                             total_records=0, total_pages=0, search='')
+        flash(f'Error loading records: {str(e)}', 'error')
+        return render_template(
+            'user/view_records.html',
+            records=[],
+            total_records=0,
+            page=1,
+            total_pages=0,
+            search=''
+        )
 
 @user_bp.route('/api/scheme-form-fields/<scheme_id>')
 @login_required
@@ -267,3 +400,52 @@ def get_scheme_form_fields(scheme_id):
         
     except Exception as e:
         return {'success': False, 'message': f'Error: {str(e)}'}
+
+@user_bp.route('/api/record-details/<record_id>')
+@login_required
+def get_record_details(record_id):
+    """API endpoint to get details of a specific record"""
+    try:
+        from bson import ObjectId
+        
+        username = session.get('username')
+        
+        # Get the record - only user's own records
+        record = mongo.db.panchayat_records.find_one({
+            '_id': ObjectId(record_id),
+            'created_by': username,
+            'is_active': True
+        })
+        
+        if not record:
+            return jsonify({
+                'success': False,
+                'message': 'Record not found or access denied'
+            })
+        
+        # Get department and scheme info
+        dept = mongo.db.departments.find_one({'_id': record.get('department_id')})
+        scheme = mongo.db.schemes.find_one({'_id': record.get('scheme_id')})
+        
+        # Format the response
+        record_data = {
+            'scheme_name': scheme['name'] if scheme else 'Unknown',
+            'department_name': dept['name'] if dept else 'Unknown',
+            'created_by': record.get('created_by', 'Unknown'),
+            'created_at': record.get('created_at').strftime('%d-%m-%Y %H:%M') if record.get('created_at') else '-',
+            'custom_data': record.get('custom_data', {})
+        }
+        
+        return jsonify({
+            'success': True,
+            'record': record_data
+        })
+        
+    except Exception as e:
+        print(f"ERROR in get_record_details: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'message': f'Error fetching record details: {str(e)}'
+        })
