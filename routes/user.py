@@ -45,8 +45,11 @@ def dashboard():
         # Get basic statistics for user dashboard based on their access
         department_ids = user_access.get('department_access', [])
         scheme_ids = user_access.get('scheme_access', [])
+
+        dept_filter = None if 'all' in department_ids else department_ids
+        scheme_filter = None if 'all' in scheme_ids else scheme_ids
         
-        stats = PanchayatRecord.get_statistics(mongo, department_ids, scheme_ids)
+        stats = PanchayatRecord.get_statistics(mongo, dept_filter, scheme_filter)
         
         return render_template("user/dashboard.html", 
                              records_count=stats['total_records'],
@@ -78,10 +81,15 @@ def add_record():
     
     # Get accessible schemes for the user
     accessible_schemes = []
-    if user_access.get('schemes'):
-        accessible_schemes = user_access['schemes']
-    elif user_access.get('scheme_access'):
-        schemes_result = Scheme.get_schemes_by_ids(mongo, user_access['scheme_access'])
+    scheme_access = user_access.get('scheme_access', [])
+
+    if 'all' in scheme_access:
+        schemes_result = Scheme.get_all_schemes(mongo,active_only=True)
+        if schemes_result['success']:
+            accessible_schemes = schemes_result['schemes']
+
+    elif scheme_access:
+        schemes_result = Scheme.get_schemes_by_ids(mongo, scheme_access)
         if schemes_result['success']:
             accessible_schemes = schemes_result['schemes']
     
@@ -182,24 +190,18 @@ def view_records():
     and scheme permissions. Includes pagination and search functionality.
     """
     try:
-        # Get user access information
-        user_id = session.get('user_id')
-        user_access = User.get_user_access_info(mongo, user_id)
-        
-        if not user_access:
-            flash('Error loading user access information.', 'error')
-            return render_template('user/view_records.html', records=[], page=1, 
-                                 total_records=0, total_pages=0, search='')
-        
         page = int(request.args.get('page', 1))
         search = request.args.get('search', '')
         per_page = 10
         
-        # Get records based on user's access
-        department_ids = user_access.get('department_access', [])
-        scheme_ids = user_access.get('scheme_access', [])
-        
-        result = PanchayatRecord.get_records_by_user_access(mongo, page, per_page, search, department_ids, scheme_ids)
+        # Use PanchayatRecord model to get records with user access filtering
+        result = PanchayatRecord.get_all_records(
+            mongo, 
+            page=page, 
+            per_page=per_page, 
+            search=search,
+            user_id=session.get('user_id')  # Pass user_id for access filtering
+        )
         
         if result['success']:
             return render_template('user/view_records.html', 
@@ -214,6 +216,9 @@ def view_records():
                                  total_records=0, total_pages=0, search='')
             
     except Exception as e:
+        print(f"User view records error: {e}")
+        import traceback
+        traceback.print_exc()
         flash('Error loading records', 'error')
         return render_template('user/view_records.html', records=[], page=1, 
                              total_records=0, total_pages=0, search='')

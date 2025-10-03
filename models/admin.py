@@ -117,11 +117,79 @@ class PanchayatRecord:
             return {'success': False, 'message': f'Error creating record: {str(e)}'}
 
     @staticmethod
-    def get_all_records(mongo, page=1, per_page=10, search=None, department_ids=None, scheme_ids=None, filters=None, taluka_filter=None):
+    def get_all_records(mongo, page=1, per_page=10, search=None, department_ids=None, scheme_ids=None, user_id=None, filters=None, taluka_filter=None):
         """Get all records with pagination, search, and filtering"""
         try:
             # Build search query
             query = {'is_active': True}
+
+            # Add user access filtering FIRST (most important filter)
+            if user_id:
+                from models.login import User
+                user_access = User.get_user_access_info(mongo, user_id)
+
+                if user_access and not user_access.get('has_all_access', False):
+                    # User has restricted access - apply filters
+                    user_department_access = user_access.get('department_access', [])
+                    user_scheme_access = user_access.get('scheme_access', [])
+                    
+                    # Apply department filter if user doesn't have 'all' access
+                    if user_department_access and 'all' not in user_department_access:
+                        try:
+                            # Filter out 'all' and convert valid IDs to ObjectId
+                            valid_dept_ids = [ObjectId(dep_id) for dep_id in user_department_access if dep_id != 'all']
+                            if valid_dept_ids:
+                                query['department_id'] = {'$in': valid_dept_ids}
+                            else:
+                                # User has no valid department access - return empty results
+                                return {
+                                    'success': True,
+                                    'records': [],
+                                    'total_records': 0,
+                                    'page': page,
+                                    'per_page': per_page,
+                                    'total_pages': 0
+                                }
+                        except Exception as e:
+                            print(f"ERROR - Converting department IDs: {e}")
+                            # Invalid ObjectIds - return empty results
+                            return {
+                                'success': True,
+                                'records': [],
+                                'total_records': 0,
+                                'page': page,
+                                'per_page': per_page,
+                                'total_pages': 0
+                            }
+                    
+                    # Apply scheme filter if user doesn't have 'all' access
+                    if user_scheme_access and 'all' not in user_scheme_access:
+                        try:
+                            # Filter out 'all' and convert valid IDs to ObjectId
+                            valid_scheme_ids = [ObjectId(scheme_id) for scheme_id in user_scheme_access if scheme_id != 'all']
+                            if valid_scheme_ids:
+                                query['scheme_id'] = {'$in': valid_scheme_ids}
+                            else:
+                                # User has no valid scheme access - return empty results
+                                return {
+                                    'success': True,
+                                    'records': [],
+                                    'total_records': 0,
+                                    'page': page,
+                                    'per_page': per_page,
+                                    'total_pages': 0
+                                }
+                        except Exception as e:
+                            print(f"ERROR - Converting scheme IDs: {e}")
+                            # Invalid ObjectIds - return empty results
+                            return {
+                                'success': True,
+                                'records': [],
+                                'total_records': 0,
+                                'page': page,
+                                'per_page': per_page,
+                                'total_pages': 0
+                            }
             
             # Add search conditions
             if search:
@@ -137,13 +205,51 @@ class PanchayatRecord:
                 
                 query['$or'] = search_conditions
             
-            # Add department filter
+            # Add department filter (intersect with user access if already set)
             if department_ids:
-                query['department_id'] = {'$in': [ObjectId(dep_id) for dep_id in department_ids]}
+                dept_object_ids = [ObjectId(dep_id) for dep_id in department_ids]
+                
+                if 'department_id' in query:
+                    # Intersect with existing user access filter
+                    existing_dept_ids = query['department_id'].get('$in', [])
+                    intersected_ids = [did for did in dept_object_ids if did in existing_dept_ids]
+                    if intersected_ids:
+                        query['department_id'] = {'$in': intersected_ids}
+                    else:
+                        # No intersection - return empty results
+                        return {
+                            'success': True,
+                            'records': [],
+                            'total_records': 0,
+                            'page': page,
+                            'per_page': per_page,
+                            'total_pages': 0
+                        }
+                else:
+                    query['department_id'] = {'$in': dept_object_ids}
             
-            # Add scheme filter
+            # Add scheme filter (intersect with user access if already set)
             if scheme_ids:
-                query['scheme_id'] = {'$in': [ObjectId(scheme_id) for scheme_id in scheme_ids]}
+                scheme_object_ids = [ObjectId(scheme_id) for scheme_id in scheme_ids]
+                
+                if 'scheme_id' in query:
+                    # Intersect with existing user access filter
+                    existing_scheme_ids = query['scheme_id'].get('$in', [])
+                    intersected_ids = [sid for sid in scheme_object_ids if sid in existing_scheme_ids]
+                    if intersected_ids:
+                        query['scheme_id'] = {'$in': intersected_ids}
+                    else:
+                        # No intersection - return empty results
+                        return {
+                            'success': True,
+                            'records': [],
+                            'total_records': 0,
+                            'page': page,
+                            'per_page': per_page,
+                            'total_pages': 0
+                        }
+                else:
+                    query['scheme_id'] = {'$in': scheme_object_ids}
             
             # Add taluka filter
             if taluka_filter:
@@ -218,6 +324,9 @@ class PanchayatRecord:
             }
             
         except Exception as e:
+            print(f"ERROR in get_all_records: {e}")
+            import traceback
+            traceback.print_exc()
             return {'success': False, 'message': f'Error fetching records: {str(e)}'}
 
     @staticmethod

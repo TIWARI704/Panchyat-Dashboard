@@ -3,19 +3,19 @@
 {% block title %}View Records - Panchayat Management{% endblock %}
 
 {% block content %}
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
     <h2>View Records</h2>
-                        <a href="{{ url_for('admin.add_record') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>Add New Record
-                        </a>
-                    </div>
+    <a href="{{ url_for('admin.add_record') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Add New Record
+    </a>
+</div>
 
 <!-- Search and Filter Section -->
-                    <div class="card mb-4">
+<div class="card mb-4">
     <div class="card-header">
         <h5 class="mb-0">Search & Filter</h5>
     </div>
-                        <div class="card-body">
+    <div class="card-body">
         <form id="searchForm" onsubmit="return false;">
             <!-- First Row: Search and Action Buttons -->
             <div class="row">
@@ -24,8 +24,8 @@
                     <div class="mb-3">
                         <label for="search" class="form-label">Search Records</label>
                         <div class="input-group">
-                            <input type="text" class="form-control" id="search" name="search" 
-                                   placeholder="Search in all fields...">
+                            <input type="text" class="form-control" id="search" name="search"
+                                placeholder="Search in all fields...">
                             <button class="btn btn-outline-primary" type="button" id="searchBtn">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -35,7 +35,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Action Buttons -->
                 <div class="col-md-6">
                     <div class="mb-3">
@@ -51,7 +51,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Second Row: Filter Dropdowns -->
             <div class="row" id="filterRow" style="display: none;">
                 <!-- Department Filter -->
@@ -73,7 +73,7 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <!-- Taluka Filter -->
                 <div class="col-4" style="display: inline-block; width: 33.33%; float: left;">
                     <div class="mb-3">
@@ -100,33 +100,33 @@
                 </div>
                 <div style="clear: both;"></div>
             </div>
-                            </form>
-                        </div>
-                    </div>
+        </form>
+    </div>
+</div>
 
-                    <!-- Records Table -->
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0" id="recordCount">Records (0 total)</h5>
-                        </div>
+<!-- Records Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0" id="recordCount">Records (0 total)</h5>
+    </div>
     <div class="card-body">
-                            <div class="table-responsive">
+        <div class="table-responsive">
             <table class="table table-striped table-hover" id="recordsTable">
                 <thead id="tableHeader">
                     <!-- Dynamic headers will be populated here -->
-                                    </thead>
+                </thead>
                 <tbody id="tableBody">
                     <!-- Dynamic rows will be populated here -->
-                                    </tbody>
-                                </table>
-                        </div>
-                        
+                </tbody>
+            </table>
+        </div>
+
         <style>
             /* Sticky action column styles */
             #recordsTable {
                 position: relative;
             }
-            
+
             #recordsTable th:last-child,
             #recordsTable td:last-child {
                 position: sticky;
@@ -136,56 +136,56 @@
                 border-left: 2px solid #dee2e6;
                 min-width: 120px;
                 text-align: center;
-                box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+                box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
             }
-            
+
             #recordsTable thead th:last-child {
                 background-color: #f8f9fa;
                 border-left: 2px solid #dee2e6;
                 font-weight: 600;
             }
-            
+
             #recordsTable tbody tr:hover td:last-child {
                 background-color: #f8f9fa;
             }
-            
+
             /* Ensure table container has proper overflow */
             .table-responsive {
                 overflow-x: auto;
             }
-            
+
             /* Action column specific styles */
             .action-column {
                 white-space: nowrap;
                 padding: 8px 12px !important;
             }
-            
+
             .action-column .btn-group {
                 display: flex;
                 gap: 2px;
             }
-            
+
             .action-column .btn {
                 padding: 4px 8px;
                 font-size: 12px;
             }
-            
+
             /* Ensure data doesn't hide behind sticky column */
             #recordsTable tbody td:not(:last-child) {
                 padding-right: 20px;
             }
         </style>
-                        
+
         <!-- Dynamic Pagination -->
         <nav aria-label="Records pagination" id="paginationNav" style="display: none;">
             <ul class="pagination justify-content-center" id="paginationList">
                 <!-- Dynamic pagination will be populated here -->
-                                </ul>
-                            </nav>
+            </ul>
+        </nav>
         <!-- No records message will be shown dynamically -->
-                        </div>
-                    </div>
-                        
+    </div>
+</div>
+
 <!-- Advanced Filter Modal -->
 <div class="modal fade" id="advancedFilterModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -193,11 +193,11 @@
             <div class="modal-header">
                 <h5 class="modal-title">Advanced Filter</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+            </div>
             <div class="modal-body">
                 <div id="filter-container">
                     <!-- Dynamic filter rows will be added here -->
-            </div>
+                </div>
                 <button type="button" class="btn btn-outline-primary btn-sm" id="add-filter">
                     <i class="fas fa-plus"></i> Add Filter
                 </button>
@@ -208,8 +208,8 @@
                 <button type="button" class="btn btn-primary" id="apply-advanced-filter">Apply Filter</button>
             </div>
         </div>
-        </div>
     </div>
+</div>
 
 <!-- Edit Record Modal -->
 <div class="modal fade" id="editRecordModal" tabindex="-1">
@@ -222,7 +222,7 @@
             <div class="modal-body">
                 <form id="editRecordForm">
                     <input type="hidden" id="editRecordId" name="record_id">
-                    
+
                     <!-- Dynamic form fields will be populated here -->
                     <div id="editDynamicFieldsContainer">
                         <div class="text-center text-muted py-4">
@@ -246,22 +246,22 @@
 {% endblock %}
 
 {% block scripts %}
-    <script>
+<script>
     // Global variables for data management
     let allFields = new Set(); // Store all unique fields from custom_data
     let fieldSchemes = new Map(); // Map fields to their schemes
     let allRecords = []; // Store all records for frontend filtering
     let filteredRecords = []; // Store currently filtered records
-    
+
     // Global function to format field values
     function formatFieldValue(value) {
         if (!value) return '-';
-        
+
         // Handle date objects
         if (value instanceof Date) {
             return value.toLocaleDateString();
         }
-        
+
         // Handle date strings
         if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
             try {
@@ -271,7 +271,7 @@
                 return value;
             }
         }
-        
+
         // Handle objects (like MongoDB date objects)
         if (typeof value === 'object' && value !== null) {
             // Check if it's a MongoDB date object
@@ -286,7 +286,7 @@
             // For other objects, return JSON string
             return JSON.stringify(value);
         }
-        
+
         return value;
     }
 
@@ -294,11 +294,11 @@
     function showNoRecordsMessage() {
         const tbody = document.getElementById('tableBody');
         const thead = document.getElementById('tableHeader');
-        
+
         if (tbody) {
             tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-4">No records found</td></tr>';
         }
-        
+
         if (thead) {
             thead.innerHTML = '<tr><th class="text-center py-4">No Data</th></tr>';
         }
@@ -316,15 +316,15 @@
     function updatePagination(totalRecords) {
         const paginationNav = document.getElementById('paginationNav');
         const paginationList = document.getElementById('paginationList');
-        
+
         if (totalRecords <= 10) { // Assuming 10 records per page
             paginationNav.style.display = 'none';
             return;
         }
-        
+
         paginationNav.style.display = 'block';
         paginationList.innerHTML = '';
-        
+
         const totalPages = Math.ceil(totalRecords / 10);
         for (let i = 1; i <= totalPages; i++) {
             const li = document.createElement('li');
@@ -338,15 +338,15 @@
     function generateTableHeaders() {
         const thead = document.getElementById('tableHeader');
         if (!thead) return;
-        
+
         const headerRow = document.createElement('tr');
-        
+
         // Add dynamic columns for each field
         allFields.forEach(field => {
             const schemes = Array.from(fieldSchemes.get(field));
             const tooltip = schemes.length > 1 ? `title="Used in: ${schemes.join(', ')}"` : '';
             const headerText = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            
+
             const th = document.createElement('th');
             th.innerHTML = `<span ${tooltip}>${headerText}</span>`;
             th.style.position = 'sticky';
@@ -355,7 +355,7 @@
             th.style.zIndex = '10';
             headerRow.appendChild(th);
         });
-        
+
         // Add action column (sticky to right)
         const actionTh = document.createElement('th');
         actionTh.innerHTML = 'Actions';
@@ -368,7 +368,7 @@
         actionTh.style.textAlign = 'center';
         actionTh.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.1)';
         headerRow.appendChild(actionTh);
-        
+
         thead.innerHTML = '';
         thead.appendChild(headerRow);
     }
@@ -377,13 +377,13 @@
     function generateTableRows(records) {
         const tbody = document.getElementById('tableBody');
         if (!tbody) return;
-        
+
         tbody.innerHTML = '';
-        
+
         records.forEach(record => {
             const row = document.createElement('tr');
             row.setAttribute('data-record-id', record._id.$oid || record._id);
-            
+
             // Add data cells for each field
             allFields.forEach(field => {
                 const value = record.custom_data ? record.custom_data[field] : '';
@@ -391,7 +391,7 @@
                 cell.textContent = formatFieldValue(value);
                 row.appendChild(cell);
             });
-            
+
             // Add action cell (sticky to right)
             const actionCell = document.createElement('td');
             actionCell.style.position = 'sticky';
@@ -402,7 +402,7 @@
             actionCell.style.minWidth = '120px';
             actionCell.style.textAlign = 'center';
             actionCell.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.1)';
-            
+
             const recordId = record._id.$oid || record._id;
             actionCell.innerHTML = `
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editRecord('${recordId}')" title="Edit">
@@ -413,23 +413,23 @@
                 </button>
             `;
             row.appendChild(actionCell);
-            
+
             tbody.appendChild(row);
         });
     }
 
     // Global function to update records table
     function updateRecordsTable(records) {
-        
+
         // Clear existing data
         allFields.clear();
         fieldSchemes.clear();
-        
+
         if (records.length === 0) {
             showNoRecordsMessage();
             return;
         }
-        
+
         // Collect all unique fields from custom_data
         records.forEach(record => {
             if (record.custom_data) {
@@ -442,26 +442,29 @@
                 });
             }
         });
-        
+
         // Generate dynamic headers
         generateTableHeaders();
-        
+
         // Generate table rows
         generateTableRows(records);
-        
+
         // Update record count
         updateRecordCount(records.length);
-        
+
         // Show pagination if needed
         updatePagination(records.length);
     }
-    
-    document.addEventListener('DOMContentLoaded', function() {
+
+    document.addEventListener('DOMContentLoaded', function () {
         // Check if user is superadmin and load filter data
         {% if session.is_superadmin %}
         loadSuperadminFilterData();
-                                        {% endif %}
-        
+        {% else %}
+        loadAdminFilterData();
+        loadFilteredRecords(); // Load records without filters for non-superadmin
+        {% endif %}
+
         // Function to load superadmin filter data
         function loadSuperadminFilterData() {
             fetch('/admin/api/superadmin-filter-data')
@@ -480,17 +483,37 @@
                     console.error('Error fetching filter data:', error);
                 });
         }
-        
+
+        function loadAdminFilterData() {
+            fetch('/admin/api/superadmin-filter-data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        populateDepartmentDropdown(data.departments);
+                        populateSchemeDropdown(data.schemes);
+                        showFilterRow();
+                        loadFilteredRecords(); // Load records with current filters
+                    } else {
+                        console.error('Error loading filter data:', data.message);
+                        loadFilteredRecords();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching filter data:', error);
+                    loadFilteredRecords();
+                });
+        }
+
         function populateDepartmentDropdown(departments) {
             const departmentSelect = document.getElementById('department_filter');
             if (!departmentSelect) {
                 console.error('Department select element not found');
                 return;
             }
-            
+
             // Clear existing options except the first one
             departmentSelect.innerHTML = '<option value="">ALL</option>';
-            
+
             // Add department options
             departments.forEach(dept => {
                 const option = document.createElement('option');
@@ -500,19 +523,19 @@
                 option.textContent = dept.name;
                 departmentSelect.appendChild(option);
             });
-            
+
         }
-        
+
         function populateSchemeDropdown(schemes) {
             const schemeSelect = document.getElementById('scheme_filter');
             if (!schemeSelect) {
                 console.error('Scheme select element not found');
                 return;
             }
-            
+
             // Clear existing options except the first one
             schemeSelect.innerHTML = '<option value="">ALL</option>';
-            
+
             // Group schemes by department
             const groupedSchemes = {};
             schemes.forEach(scheme => {
@@ -522,12 +545,12 @@
                 }
                 groupedSchemes[deptName].push(scheme);
             });
-            
+
             // Add optgroups and options
             Object.keys(groupedSchemes).forEach(deptName => {
                 const optgroup = document.createElement('optgroup');
                 optgroup.label = deptName;
-                
+
                 groupedSchemes[deptName].forEach(scheme => {
                     const option = document.createElement('option');
                     // Extract the actual ObjectId strings from the MongoDB response
@@ -538,12 +561,12 @@
                     option.setAttribute('data-department', deptId);
                     optgroup.appendChild(option);
                 });
-                
+
                 schemeSelect.appendChild(optgroup);
             });
-            
+
         }
-        
+
         function showFilterRow() {
             const filterRow = document.getElementById('filterRow');
             if (filterRow) {
@@ -552,12 +575,12 @@
                 console.error('Filter row element not found');
             }
         }
-        
+
         function loadFilteredRecords() {
             const departmentFilter = document.getElementById('department_filter').value;
             const schemeFilter = document.getElementById('scheme_filter').value;
             const talukaFilter = document.getElementById('taluka_filter').value;
-            
+
             // Build query parameters
             const params = new URLSearchParams();
             if (departmentFilter && departmentFilter !== '') {
@@ -569,9 +592,9 @@
             if (talukaFilter && talukaFilter !== '') {
                 params.append('taluka', talukaFilter);
             }
-            
+
             const url = `/admin/api/filtered-records?${params.toString()}`;
-            
+
             // Make API call to get filtered records
             fetch(url)
                 .then(response => response.json())
@@ -587,13 +610,13 @@
                     console.error('Error fetching filtered records:', error);
                 });
         }
-        
+
         function applyFrontendFilters() {
             const searchTerm = document.getElementById('search').value.toLowerCase().trim();
-            
+
             // Start with all records
             filteredRecords = [...allRecords];
-            
+
             // Apply search filter
             if (searchTerm) {
                 filteredRecords = filteredRecords.filter(record => {
@@ -605,7 +628,7 @@
                             }
                         }
                     }
-                    
+
                     // Search in other record fields
                     const searchableFields = ['department_name', 'scheme_name', 'created_by'];
                     for (const field of searchableFields) {
@@ -613,61 +636,61 @@
                             return true;
                         }
                     }
-                    
+
                     return false;
                 });
             }
-            
+
             // Update table with filtered results
             updateRecordsTable(filteredRecords);
         }
-        
+
         function applyFilters() {
             loadFilteredRecords();
         }
-        
-        
+
+
         // Download functionality
         function setupDownloadButton() {
             const downloadBtn = document.getElementById('downloadBtn');
             if (downloadBtn) {
-                downloadBtn.addEventListener('click', function() {
+                downloadBtn.addEventListener('click', function () {
                     downloadCurrentData();
                 });
             }
         }
-        
+
         // Search functionality
         function setupSearchFunctionality() {
             const searchInput = document.getElementById('search');
             const searchBtn = document.getElementById('searchBtn');
             const clearBtn = document.getElementById('clearBtn');
-            
+
             // Real-time search as user types
             if (searchInput) {
-                searchInput.addEventListener('input', function() {
+                searchInput.addEventListener('input', function () {
                     applyFrontendFilters();
                 });
             }
-            
+
             // Search button click
             if (searchBtn) {
-                searchBtn.addEventListener('click', function() {
+                searchBtn.addEventListener('click', function () {
                     applyFrontendFilters();
                 });
             }
-            
+
             // Clear button click
             if (clearBtn) {
-                clearBtn.addEventListener('click', function() {
+                clearBtn.addEventListener('click', function () {
                     searchInput.value = '';
                     applyFrontendFilters();
                 });
             }
-            
+
             // Enter key in search input
             if (searchInput) {
-                searchInput.addEventListener('keypress', function(e) {
+                searchInput.addEventListener('keypress', function (e) {
                     if (e.key === 'Enter') {
                         e.preventDefault();
                         applyFrontendFilters();
@@ -675,24 +698,24 @@
                 });
             }
         }
-        
+
         function downloadCurrentData() {
             // Download the currently filtered data (frontend filtered)
             if (filteredRecords.length === 0) {
                 alert('No data to download');
                 return;
             }
-            
+
             // Create Excel data from filtered records
             const excelData = prepareExcelData(filteredRecords);
-            
+
             // Create and download Excel file
             downloadExcelFile(excelData, 'filtered_records.xlsx');
         }
-        
+
         function prepareExcelData(records) {
             const excelData = [];
-            
+
             // Get all unique fields from the filtered records
             const allFields = new Set();
             records.forEach(record => {
@@ -702,13 +725,13 @@
                     });
                 }
             });
-            
+
             // Prepare header row
             const headers = ['Department', 'Scheme', 'Created By', 'Created At', 'Status'];
             allFields.forEach(field => {
                 headers.push(field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
             });
-            
+
             // Prepare data rows
             records.forEach(record => {
                 const row = {
@@ -718,25 +741,25 @@
                     'Created At': record.created_at ? new Date(record.created_at).toLocaleDateString() : '',
                     'Status': record.is_active ? 'Active' : 'Inactive'
                 };
-                
+
                 // Add custom data fields
                 allFields.forEach(field => {
                     const value = record.custom_data && record.custom_data[field] ? record.custom_data[field] : '';
                     row[field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())] = formatFieldValue(value);
                 });
-                
+
                 excelData.push(row);
             });
-            
+
             return { headers, data: excelData };
         }
-        
+
         function downloadExcelFile(data, filename) {
             // Create a simple CSV download (can be enhanced to use a proper Excel library)
             const csvContent = createCSVContent(data);
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
-            
+
             if (link.download !== undefined) {
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
@@ -747,13 +770,13 @@
                 document.body.removeChild(link);
             }
         }
-        
+
         function createCSVContent(data) {
             const { headers, data: rows } = data;
-            
+
             // Create CSV header
             let csvContent = headers.map(header => `"${header}"`).join(',') + '\n';
-            
+
             // Create CSV rows
             rows.forEach(row => {
                 const csvRow = headers.map(header => {
@@ -762,24 +785,24 @@
                 }).join(',');
                 csvContent += csvRow + '\n';
             });
-            
+
             return csvContent;
         }
-        
+
         // Simple cascading functionality - filter schemes based on selected department
         function setupCascadingDropdowns() {
             const departmentFilter = document.getElementById('department_filter');
             const schemeFilter = document.getElementById('scheme_filter');
             const talukaFilter = document.getElementById('taluka_filter');
-            
+
             if (departmentFilter && schemeFilter) {
-                departmentFilter.addEventListener('change', function() {
+                departmentFilter.addEventListener('change', function () {
                     const selectedDepartmentId = this.value;
                     const schemeOptions = schemeFilter.querySelectorAll('option[data-department]');
-                    
+
                     // Reset scheme filter
                     schemeFilter.value = '';
-                    
+
                     // Show/hide scheme options based on selected department
                     schemeOptions.forEach(option => {
                         if (!selectedDepartmentId || option.getAttribute('data-department') === selectedDepartmentId) {
@@ -788,34 +811,34 @@
                             option.style.display = 'none';
                         }
                     });
-                    
+
                     // Apply filters after department change (this will trigger API call)
                     applyFilters();
                 });
-                
-                schemeFilter.addEventListener('change', function() {
+
+                schemeFilter.addEventListener('change', function () {
                     // Apply filters after scheme change (this will trigger API call)
                     applyFilters();
                 });
             }
-            
+
             if (talukaFilter) {
-                talukaFilter.addEventListener('change', function() {
+                talukaFilter.addEventListener('change', function () {
                     // Apply filters when taluka changes
                     applyFilters();
                 });
             }
         }
-        
+
         // Setup cascading dropdowns after data is loaded
         setTimeout(setupCascadingDropdowns, 1000);
-        
+
         // Setup download button
         setupDownloadButton();
-        
+
         // Setup search functionality
         setupSearchFunctionality();
-        
+
         // Advanced filter functionality
         const filterContainer = document.getElementById('filter-container');
         const addFilterBtn = document.getElementById('add-filter');
@@ -828,7 +851,7 @@
         let currentFilters = [];
 
         // Show advanced filter modal
-        advancedFilterBtn.addEventListener('click', function() {
+        advancedFilterBtn.addEventListener('click', function () {
             restoreFilterModal();
             advancedFilterModal.show();
         });
@@ -842,7 +865,7 @@
         // Restore filter modal with saved state
         function restoreFilterModal() {
             filterContainer.innerHTML = '';
-            
+
             if (currentFilters.length === 0) {
                 // No saved filters, initialize with one empty row
                 addFilterRow();
@@ -855,20 +878,20 @@
         }
 
         // Add filter row
-        addFilterBtn.addEventListener('click', function() {
+        addFilterBtn.addEventListener('click', function () {
             addFilterRow();
         });
 
         function addFilterRow(filterData = null, index = null) {
             const newFilterRow = document.createElement('div');
             newFilterRow.className = 'filter-row border p-3 mb-2 rounded';
-            
+
             // Get available fields for options
             const availableFields = getAvailableFields();
-            const fieldOptions = availableFields.map(field => 
+            const fieldOptions = availableFields.map(field =>
                 `<option value="${field.key}" ${filterData && filterData.field === field.key ? 'selected' : ''}>${field.label}</option>`
             ).join('');
-            
+
             newFilterRow.innerHTML = `
                 <div class="row">
                     <div class="col-md-3">
@@ -911,11 +934,11 @@
                 </div>
             `;
             filterContainer.appendChild(newFilterRow);
-            
+
             // Add event listener for field change to update operators
             const fieldSelect = newFilterRow.querySelector('.filter-field');
             const operatorSelect = newFilterRow.querySelector('.filter-operator');
-            
+
             // If we have filter data, set the operator and update operators
             if (filterData) {
                 operatorSelect.value = filterData.operator;
@@ -923,11 +946,11 @@
                 // Set the operator again after updating options
                 operatorSelect.value = filterData.operator;
             }
-            
-            fieldSelect.addEventListener('change', function() {
+
+            fieldSelect.addEventListener('change', function () {
                 updateOperatorsForField(this.value, operatorSelect);
             });
-            
+
             updateRemoveButtons();
         }
 
@@ -939,18 +962,18 @@
                 { key: 'created_at', label: 'Created At', type: 'date' },
                 { key: 'is_active', label: 'Status', type: 'boolean' }
             ];
-            
+
             // Add custom data fields from current records with dynamic type detection
             if (allRecords && allRecords.length > 0) {
                 const customFields = new Map(); // Use Map to store field info with type detection
-                
+
                 allRecords.forEach((record, recordIndex) => {
                     if (record.custom_data) {
                         console.log(`Record ${recordIndex} custom_data:`, record.custom_data);
                         Object.keys(record.custom_data).forEach(field => {
                             const value = record.custom_data[field];
                             console.log(`Field: ${field}, Value:`, value, 'Type:', typeof value);
-                            
+
                             if (!customFields.has(field)) {
                                 customFields.set(field, {
                                     key: field,
@@ -959,7 +982,7 @@
                                     values: new Set()
                                 });
                             }
-                            
+
                             // Store unique values for better type detection
                             if (value !== null && value !== undefined && value !== '') {
                                 customFields.get(field).values.add(value);
@@ -967,43 +990,43 @@
                         });
                     }
                 });
-                
+
                 // Refine type detection based on all values for each field
                 customFields.forEach((fieldInfo, field) => {
                     console.log(`Field: ${field}, Values:`, Array.from(fieldInfo.values));
                     const refinedType = refineDataType(fieldInfo.values);
                     console.log(`Refined type for ${field}:`, refinedType);
-                    fields.push({ 
-                        key: `custom_data.${field}`, 
-                        label: fieldInfo.label, 
-                        type: refinedType 
+                    fields.push({
+                        key: `custom_data.${field}`,
+                        label: fieldInfo.label,
+                        type: refinedType
                     });
                 });
             }
-            
+
             console.log('Final available fields:', fields);
             return fields;
         }
-        
+
         function detectDataType(value) {
             if (value === null || value === undefined || value === '') {
                 return 'string';
             }
-            
+
             console.log('Detecting type for value:', value, 'Type:', typeof value);
-            
+
             // Check if it's a date (handle MongoDB date objects and date strings)
             if (value instanceof Date) {
                 console.log('Detected as Date object');
                 return 'date';
             }
-            
+
             // Handle MongoDB date format: {$date: "2023-01-01T00:00:00.000Z"}
             if (typeof value === 'object' && value.$date) {
                 console.log('Detected as MongoDB date');
                 return 'date';
             }
-            
+
             // Check for date strings
             if (typeof value === 'string') {
                 // Try to parse as date
@@ -1013,41 +1036,41 @@
                     return 'date';
                 }
             }
-            
+
             // Check if it's a boolean
             if (typeof value === 'boolean') {
                 console.log('Detected as boolean');
                 return 'boolean';
             }
-            
+
             // Check for boolean strings
             if (typeof value === 'string' && (value.toLowerCase() === 'true' || value.toLowerCase() === 'false')) {
                 console.log('Detected as boolean string:', value);
                 return 'boolean';
             }
-            
+
             // Check if it's a number
             if (typeof value === 'number') {
                 console.log('Detected as number');
                 return 'number';
             }
-            
+
             // Check for numeric strings (but not dates)
             if (typeof value === 'string' && !isNaN(parseFloat(value)) && isFinite(value) && !value.includes('-') && !value.includes('/')) {
                 console.log('Detected as numeric string:', value);
                 return 'number';
             }
-            
+
             // Default to string
             console.log('Defaulting to string for:', value);
             return 'string';
         }
-        
+
         function refineDataType(values) {
             if (values.size === 0) {
                 return 'string';
             }
-            
+
             const valueArray = Array.from(values);
             let typeCounts = {
                 string: 0,
@@ -1055,41 +1078,41 @@
                 date: 0,
                 boolean: 0
             };
-            
+
             console.log('Refining type for values:', valueArray);
-            
+
             // Count types for all values
             valueArray.forEach(value => {
                 const type = detectDataType(value);
                 typeCounts[type]++;
                 console.log(`Value: ${value} -> Type: ${type}`);
             });
-            
+
             console.log('Type counts:', typeCounts);
-            
+
             // If we have a clear majority type, use it
             const totalValues = valueArray.length;
             const maxCount = Math.max(...Object.values(typeCounts));
             const maxType = Object.keys(typeCounts).find(type => typeCounts[type] === maxCount);
-            
+
             // If the majority type represents more than 70% of values, use it
             if (maxCount / totalValues > 0.7) {
                 console.log(`Using majority type: ${maxType} (${maxCount}/${totalValues})`);
                 return maxType;
             }
-            
+
             // Determine if it's an enum (limited string values)
             if (typeCounts.string > 0 && values.size <= 10) {
                 // Check if all string values are from a limited set
                 const stringValues = valueArray.filter(v => detectDataType(v) === 'string');
                 const uniqueStrings = new Set(stringValues);
-                
+
                 if (uniqueStrings.size <= 10 && uniqueStrings.size < valueArray.length * 0.8) {
                     console.log('Detected as enum with unique strings:', uniqueStrings);
                     return 'enum';
                 }
             }
-            
+
             // Return the most common type as fallback
             console.log(`Using fallback type: ${maxType}`);
             return maxType;
@@ -1101,10 +1124,10 @@
                 console.log('Field not found for key:', fieldKey);
                 return;
             }
-            
+
             console.log('Updating operators for field:', field);
             let operators = [];
-            
+
             switch (field.type) {
                 case 'string':
                     operators = [
@@ -1154,15 +1177,15 @@
                         { value: 'not_equals', label: 'Not Equals' }
                     ];
             }
-            
+
             console.log('Setting operators for field type:', field.type, 'Operators:', operators);
-            operatorSelect.innerHTML = operators.map(op => 
+            operatorSelect.innerHTML = operators.map(op =>
                 `<option value="${op.value}">${op.label}</option>`
             ).join('');
         }
 
         // Remove filter row
-        filterContainer.addEventListener('click', function(e) {
+        filterContainer.addEventListener('click', function (e) {
             if (e.target.closest('.remove-filter')) {
                 e.target.closest('.filter-row').remove();
                 updateRemoveButtons();
@@ -1170,16 +1193,16 @@
         });
 
         // Apply advanced filter
-        applyAdvancedFilterBtn.addEventListener('click', function() {
+        applyAdvancedFilterBtn.addEventListener('click', function () {
             const filters = [];
             const filterRows = filterContainer.querySelectorAll('.filter-row');
-            
+
             filterRows.forEach((row, index) => {
                 const field = row.querySelector('.filter-field').value;
                 const operator = row.querySelector('.filter-operator').value;
                 const value = row.querySelector('.filter-value').value;
                 const logic = row.querySelector('.filter-logic').value;
-                
+
                 if (field && value) {
                     filters.push({
                         field: field,
@@ -1189,11 +1212,11 @@
                     });
                 }
             });
-            
+
             if (filters.length > 0) {
                 // Save current filter state
                 currentFilters = filters;
-                
+
                 // Apply filters to the current data (frontend filtering)
                 applyFiltersToData(filters);
                 advancedFilterModal.hide();
@@ -1203,13 +1226,13 @@
         });
 
         // Clear advanced filters
-        clearAdvancedFilterBtn.addEventListener('click', function() {
+        clearAdvancedFilterBtn.addEventListener('click', function () {
             // Clear saved filter state
             currentFilters = [];
-            
+
             // Clear all filter rows
             filterContainer.innerHTML = '';
-            
+
             // Reset to show all records
             filteredRecords = [...allRecords];
             updateRecordsTable(filteredRecords);
@@ -1223,19 +1246,19 @@
                 updateRecordsTable(filteredRecords);
                 return;
             }
-            
+
             let result = [...allRecords];
-            
+
             filters.forEach((filter, index) => {
                 const { field, operator, value, logic } = filter;
-                
+
                 if (index === 0) {
                     // First filter - apply directly
                     result = result.filter(record => evaluateFilter(record, field, operator, value));
                 } else {
                     // Subsequent filters - apply with logic
                     const newResult = allRecords.filter(record => evaluateFilter(record, field, operator, value));
-                    
+
                     if (logic === 'and') {
                         result = result.filter(record => newResult.includes(record));
                     } else if (logic === 'or') {
@@ -1243,7 +1266,7 @@
                     }
                 }
             });
-            
+
             filteredRecords = result;
             updateRecordsTable(filteredRecords);
             updateRecordCount(filteredRecords.length);
@@ -1252,7 +1275,7 @@
 
         function evaluateFilter(record, field, operator, value) {
             let recordValue;
-            
+
             // Get value from record
             if (field.startsWith('custom_data.')) {
                 const customField = field.replace('custom_data.', '');
@@ -1260,11 +1283,11 @@
             } else {
                 recordValue = record[field] || '';
             }
-            
+
             // Convert to string for comparison
             const strValue = String(recordValue).toLowerCase();
             const strFilterValue = String(value).toLowerCase();
-            
+
             switch (operator) {
                 case 'equals':
                     return strValue === strFilterValue;
@@ -1314,54 +1337,54 @@
                     'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || ''
                 }
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Show success message
-                    showAlert('Record deleted successfully!', 'success');
-                    
-                    // Find the row by data attribute
-                    const tableBody = document.getElementById('tableBody');
-                    const targetRow = tableBody.querySelector(`tr[data-record-id="${recordId}"]`);
-                    
-                    if (targetRow) {
-                        console.log('Found row to delete:', targetRow);
-                        
-                        // Add fade out animation
-                        targetRow.style.transition = 'all 0.3s ease';
-                        targetRow.style.opacity = '0';
-                        targetRow.style.transform = 'translateX(-100%)';
-                        
-                        // Remove the row after animation
-                        setTimeout(() => {
-                            targetRow.remove();
-                            console.log('Row removed from DOM');
-                            
-                            // Update total count
-                            const currentCount = parseInt(document.getElementById('recordCount').textContent.match(/\d+/)[0]);
-                            document.getElementById('recordCount').textContent = `Records (${currentCount - 1} total)`;
-                            
-                            // Force browser to update the display
-                            tableBody.style.display = 'none';
-                            tableBody.offsetHeight; // Trigger reflow
-                            tableBody.style.display = '';
-                            
-                        }, 300);
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        showAlert('Record deleted successfully!', 'success');
+
+                        // Find the row by data attribute
+                        const tableBody = document.getElementById('tableBody');
+                        const targetRow = tableBody.querySelector(`tr[data-record-id="${recordId}"]`);
+
+                        if (targetRow) {
+                            console.log('Found row to delete:', targetRow);
+
+                            // Add fade out animation
+                            targetRow.style.transition = 'all 0.3s ease';
+                            targetRow.style.opacity = '0';
+                            targetRow.style.transform = 'translateX(-100%)';
+
+                            // Remove the row after animation
+                            setTimeout(() => {
+                                targetRow.remove();
+                                console.log('Row removed from DOM');
+
+                                // Update total count
+                                const currentCount = parseInt(document.getElementById('recordCount').textContent.match(/\d+/)[0]);
+                                document.getElementById('recordCount').textContent = `Records (${currentCount - 1} total)`;
+
+                                // Force browser to update the display
+                                tableBody.style.display = 'none';
+                                tableBody.offsetHeight; // Trigger reflow
+                                tableBody.style.display = '';
+
+                            }, 300);
+                        } else {
+                            console.log('Row not found, refreshing table...');
+                            // Fallback: refresh the entire table
+                            loadFilteredRecords();
+                        }
+
                     } else {
-                        console.log('Row not found, refreshing table...');
-                        // Fallback: refresh the entire table
-                        loadFilteredRecords();
+                        // Show error message
+                        showAlert('Error deleting record: ' + data.message, 'danger');
                     }
-                    
-                } else {
-                    // Show error message
-                    showAlert('Error deleting record: ' + data.message, 'danger');
-                }
-            })
-            .catch(error => {
-                console.error('Error deleting record:', error);
-                showAlert('Error deleting record. Please try again.', 'danger');
-            });
+                })
+                .catch(error => {
+                    console.error('Error deleting record:', error);
+                    showAlert('Error deleting record. Please try again.', 'danger');
+                });
         }
     }
 
@@ -1384,10 +1407,10 @@
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         `;
-        
+
         // Add to body
         document.body.appendChild(alertDiv);
-        
+
         // Auto remove after 5 seconds
         setTimeout(() => {
             if (alertDiv.parentNode) {
@@ -1399,14 +1422,14 @@
     // Edit record function
     function editRecord(recordId) {
         console.log('Editing record:', recordId);
-        
+
         // Set the record ID in the hidden field
         document.getElementById('editRecordId').value = recordId;
-        
+
         // Show the modal
         const editModal = new bootstrap.Modal(document.getElementById('editRecordModal'));
         editModal.show();
-        
+
         // Load the record data and generate form fields
         loadRecordForEdit(recordId);
     }
@@ -1414,7 +1437,7 @@
     // Load record data for editing
     function loadRecordForEdit(recordId) {
         const container = document.getElementById('editDynamicFieldsContainer');
-        
+
         // Show loading state
         container.innerHTML = `
             <div class="text-center py-4">
@@ -1424,33 +1447,33 @@
                 <p class="mt-2 text-muted">Loading record data...</p>
             </div>
         `;
-        
+
         // Find the record in allRecords
         const record = allRecords.find(r => {
             const id = r._id.$oid || r._id;
             return id === recordId;
         });
-        
+
         if (!record) {
             container.innerHTML = '<div class="alert alert-danger">Record not found in current data!</div>';
             return;
         }
-        
+
         // Get scheme information
         let schemeId = record.scheme_id;
-        
+
         // Handle ObjectId format - extract string value
         if (schemeId && typeof schemeId === 'object') {
             schemeId = schemeId.$oid || schemeId.toString();
         }
-        
+
         console.log('Record scheme_id:', schemeId, 'Type:', typeof schemeId);
-        
+
         if (!schemeId) {
             container.innerHTML = '<div class="alert alert-danger">Scheme information not found!</div>';
             return;
         }
-        
+
         // Fetch scheme form fields
         console.log('Fetching scheme fields for ID:', schemeId);
         fetch(`/admin/api/scheme-form-fields/${schemeId}`)
@@ -1471,20 +1494,20 @@
     // Generate edit form fields
     function generateEditFormFields(attributes, customData) {
         const container = document.getElementById('editDynamicFieldsContainer');
-        
+
         if (!attributes || attributes.length === 0) {
             container.innerHTML = '<div class="alert alert-warning">No form fields available for this record.</div>';
             return;
         }
-        
+
         let formHTML = '<div class="row">';
-        
+
         attributes.forEach((attr, index) => {
             const fieldName = attr.name;
             const fieldLabel = attr.label;
             const fieldType = attr.type;
             const fieldValue = customData[fieldName] || '';
-            
+
             formHTML += `
                 <div class="col-md-6 mb-3">
                     <label for="edit_${fieldName}" class="form-label">${fieldLabel} *</label>
@@ -1492,7 +1515,7 @@
                 </div>
             `;
         });
-        
+
         formHTML += '</div>';
         container.innerHTML = formHTML;
     }
@@ -1500,18 +1523,18 @@
     // Generate HTML for different field types in edit form
     function generateEditFieldHTML(fieldName, fieldType, fieldValue, options = []) {
         const inputId = `edit_${fieldName}`;
-        
+
         switch (fieldType) {
             case 'string':
                 return `<input type="text" class="form-control" id="${inputId}" name="${fieldName}" value="${fieldValue}" required>`;
-            
+
             case 'int':
             case 'number':
                 return `<input type="number" class="form-control" id="${inputId}" name="${fieldName}" value="${fieldValue}" required>`;
-            
+
             case 'float':
                 return `<input type="number" class="form-control" id="${inputId}" name="${fieldName}" value="${fieldValue}" step="0.01" required>`;
-            
+
             case 'date':
                 let dateValue = '';
                 if (fieldValue) {
@@ -1525,7 +1548,7 @@
                         } else {
                             date = new Date(fieldValue);
                         }
-                        
+
                         if (!isNaN(date.getTime())) {
                             dateValue = date.toISOString().split('T')[0];
                         }
@@ -1535,7 +1558,7 @@
                     }
                 }
                 return `<input type="date" class="form-control" id="${inputId}" name="${fieldName}" value="${dateValue}" required>`;
-            
+
             case 'boolean':
                 const checked = fieldValue === true || fieldValue === 'true' || fieldValue === '1' ? 'checked' : '';
                 return `
@@ -1544,7 +1567,7 @@
                         <label class="form-check-label" for="${inputId}">Yes</label>
                     </div>
                 `;
-            
+
             case 'enum':
                 let optionsHTML = '<option value="">Select an option</option>';
                 options.forEach(option => {
@@ -1552,7 +1575,7 @@
                     optionsHTML += `<option value="${option}" ${selected}>${option}</option>`;
                 });
                 return `<select class="form-select" id="${inputId}" name="${fieldName}" required>${optionsHTML}</select>`;
-            
+
             default:
                 return `<input type="text" class="form-control" id="${inputId}" name="${fieldName}" value="${fieldValue}" required>`;
         }
@@ -1563,7 +1586,7 @@
         const recordId = document.getElementById('editRecordId').value;
         const form = document.getElementById('editRecordForm');
         const formData = new FormData(form);
-        
+
         // Convert FormData to object, removing 'edit_' prefix from field names
         const updateData = {};
         for (let [key, value] of formData.entries()) {
@@ -1573,9 +1596,9 @@
                 updateData[fieldName] = value;
             }
         }
-        
+
         console.log('Sending update data:', updateData);
-        
+
         // Make AJAX request to update record
         fetch(`/admin/api/update-record/${recordId}`, {
             method: 'POST',
@@ -1584,50 +1607,50 @@
             },
             body: JSON.stringify(updateData)
         })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Update response:', data);
-            if (data.success) {
-                showAlert('Record updated successfully!', 'success');
-                
-                // Close modal
-                const editModal = bootstrap.Modal.getInstance(document.getElementById('editRecordModal'));
-                editModal.hide();
-                
-                // Update the record in allRecords array
-                const recordIndex = allRecords.findIndex(r => {
-                    const id = r._id.$oid || r._id;
-                    return id === recordId;
-                });
-                
-                if (recordIndex !== -1) {
-                    // Update the record data with the processed data
-                    allRecords[recordIndex].custom_data = updateData;
-                    allRecords[recordIndex].updated_at = new Date().toISOString();
-                    
-                    // Update filteredRecords as well
-                    const filteredIndex = filteredRecords.findIndex(r => {
+            .then(response => response.json())
+            .then(data => {
+                console.log('Update response:', data);
+                if (data.success) {
+                    showAlert('Record updated successfully!', 'success');
+
+                    // Close modal
+                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editRecordModal'));
+                    editModal.hide();
+
+                    // Update the record in allRecords array
+                    const recordIndex = allRecords.findIndex(r => {
                         const id = r._id.$oid || r._id;
                         return id === recordId;
                     });
-                    
-                    if (filteredIndex !== -1) {
-                        filteredRecords[filteredIndex].custom_data = updateData;
-                        filteredRecords[filteredIndex].updated_at = new Date().toISOString();
+
+                    if (recordIndex !== -1) {
+                        // Update the record data with the processed data
+                        allRecords[recordIndex].custom_data = updateData;
+                        allRecords[recordIndex].updated_at = new Date().toISOString();
+
+                        // Update filteredRecords as well
+                        const filteredIndex = filteredRecords.findIndex(r => {
+                            const id = r._id.$oid || r._id;
+                            return id === recordId;
+                        });
+
+                        if (filteredIndex !== -1) {
+                            filteredRecords[filteredIndex].custom_data = updateData;
+                            filteredRecords[filteredIndex].updated_at = new Date().toISOString();
+                        }
+
+                        // Update the table display
+                        updateRecordsTable(filteredRecords);
                     }
-                    
-                    // Update the table display
-                    updateRecordsTable(filteredRecords);
+
+                } else {
+                    showAlert('Error updating record: ' + data.message, 'danger');
                 }
-                
-            } else {
-                showAlert('Error updating record: ' + data.message, 'danger');
-            }
-        })
-        .catch(error => {
-            console.error('Error updating record:', error);
-            showAlert('Error updating record. Please try again.', 'danger');
-        });
+            })
+            .catch(error => {
+                console.error('Error updating record:', error);
+                showAlert('Error updating record. Please try again.', 'danger');
+            });
     }
 
     // Setup edit record event listeners
@@ -1653,6 +1676,6 @@
         document.querySelectorAll('.record-checkbox').forEach(checkbox => {
             checkbox.checked = selectAllCheckbox.checked;
         });
-        }
-    </script>
+    }
+</script>
 {% endblock %}

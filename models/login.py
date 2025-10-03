@@ -132,68 +132,93 @@ class User:
 
     @staticmethod
     def get_user_access_info(mongo, user_id):
-        """Get user's department and scheme access information"""
+        """Get user's access information including departments and schemes"""
         try:
+            from bson import ObjectId
             user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
+            
             if not user:
                 return None
             
-            # If user is superadmin, they have access to all departments and schemes
-            if user.get('is_superadmin'):
-                departments = list(mongo.db.departments.find({'is_active': True}).sort('name', 1))
-                schemes = list(mongo.db.schemes.find({'is_active': True}).sort('name', 1))
-                
-                # Populate department names for schemes
-                for scheme in schemes:
-                    department = mongo.db.departments.find_one({'_id': scheme['department_id']})
-                    scheme['department_name'] = department['name'] if department else 'Unknown'
-                
-                return {
-                    'has_all_access': True,
-                    'departments': departments,
-                    'schemes': schemes,
-                    'department_access': [str(dept['_id']) for dept in departments],
-                    'scheme_access': [str(scheme['_id']) for scheme in schemes],
-                    'department_ids': [str(dept['_id']) for dept in departments],
-                    'scheme_ids': [str(scheme['_id']) for scheme in schemes]
-                }
+            # Check if user is superadmin (has all access)
+            is_superadmin = user.get('is_superadmin', False)
+            is_admin = user.get('is_admin', False)
             
-            # Get user's specific access
+            # Get department access
             department_access = user.get('department_access', [])
+            if not isinstance(department_access, list):
+                department_access = [department_access] if department_access else []
+            
+            # Get scheme access
             scheme_access = user.get('scheme_access', [])
+            if not isinstance(scheme_access, list):
+                scheme_access = [scheme_access] if scheme_access else []
             
-            # Get departments user has access to
-            departments = []
-            if department_access:
-                departments = list(mongo.db.departments.find({
-                    '_id': {'$in': [ObjectId(dep_id) for dep_id in department_access]},
-                    'is_active': True
-                }).sort('name', 1))
+            # Determine if user has all access
+            has_all_access = is_superadmin or 'all' in department_access or 'all' in scheme_access
             
-            # Get schemes user has access to
-            schemes = []
-            if scheme_access:
-                schemes = list(mongo.db.schemes.find({
-                    '_id': {'$in': [ObjectId(scheme_id) for scheme_id in scheme_access]},
-                    'is_active': True
-                }).sort('name', 1))
-                
-                # Populate department names for schemes
-                for scheme in schemes:
-                    department = mongo.db.departments.find_one({'_id': scheme['department_id']})
-                    scheme['department_name'] = department['name'] if department else 'Unknown'
+            # If superadmin or has 'all' access, get all departments and schemes
+            if is_superadmin or 'all' in department_access:
+                departments = list(mongo.db.departments.find({'is_active': True}).sort('name', 1))
+                department_ids = [str(dept['_id']) for dept in departments]
+            else:
+                # Get specific departments user has access to
+                departments = []
+                if department_access:
+                    try:
+                        departments = list(mongo.db.departments.find({
+                            '_id': {'$in': [ObjectId(dep_id) for dep_id in department_access if dep_id != 'all']},
+                            'is_active': True
+                        }).sort('name', 1))
+                    except Exception as e:
+                        print(f"ERROR - Getting departments: {e}")
+                        departments = []
+                department_ids = department_access if department_access and 'all' not in department_access else [str(dept['_id']) for dept in departments]
             
-            return {
-                'has_all_access': False,
+            # If superadmin or has 'all' scheme access, get all schemes
+            if is_superadmin or 'all' in scheme_access:
+                schemes = list(mongo.db.schemes.find({'is_active': True}).sort('name', 1))
+                scheme_ids = [str(scheme['_id']) for scheme in schemes]
+            else:
+                # Get specific schemes user has access to
+                schemes = []
+                if scheme_access:
+                    try:
+                        schemes = list(mongo.db.schemes.find({
+                            '_id': {'$in': [ObjectId(scheme_id) for scheme_id in scheme_access if scheme_id != 'all']},
+                            'is_active': True
+                        }).sort('name', 1))
+                    except Exception as e:
+                        print(f"ERROR - Getting schemes: {e}")
+                        schemes = []
+                scheme_ids = scheme_access if scheme_access and 'all' not in scheme_access else [str(scheme['_id']) for scheme in schemes]
+            
+            # Populate department names for schemes
+            for scheme in schemes:
+                department = mongo.db.departments.find_one({'_id': scheme.get('department_id')})
+                scheme['department_name'] = department['name'] if department else 'Unknown'
+            
+            result = {
+                'user_id': str(user['_id']),
+                'username': user.get('username'),
+                'role': user.get('role', 'user'),
+                'is_superadmin': is_superadmin,
+                'is_admin': is_admin,
+                'has_all_access': has_all_access,
                 'departments': departments,
                 'schemes': schemes,
-                'department_access': department_access,
-                'scheme_access': scheme_access,
-                'department_ids': department_access,
-                'scheme_ids': scheme_access
+                'department_access': department_ids,
+                'scheme_access': scheme_ids,
+                'department_ids': department_ids,
+                'scheme_ids': scheme_ids
             }
             
+            return result
+            
         except Exception as e:
+            print(f"ERROR in get_user_access_info: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     @staticmethod
@@ -205,11 +230,17 @@ class User:
                 return False
             
             # Superadmin has access to all departments
-            if user.get('is_superadmin'):
+            if user.get('is_superadmin', False):
                 return True
             
             # Check if department is in user's access list
             department_access = user.get('department_access', [])
+            if not isinstance(department_access, list):
+                department_access = [department_access] if department_access else []
+
+            if 'all' in department_access:
+                return True
+            
             return str(department_id) in department_access
             
         except Exception as e:
@@ -224,12 +255,18 @@ class User:
                 return False
             
             # Superadmin has access to all schemes
-            if user.get('is_superadmin'):
+            if user.get('is_superadmin', False):
                 return True
             
             # Check if scheme is in user's access list
             scheme_access = user.get('scheme_access', [])
-            return str(scheme_id) in scheme_access
+            if not isinstance(scheme_access, list):
+                scheme_access = [scheme_access] if scheme_access else []
+
+            if 'all' in scheme_access:
+                return True
+
+            return str(scheme_id) in scheme_access  
             
         except Exception as e:
             return False
