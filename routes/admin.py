@@ -1398,9 +1398,6 @@ def get_schemes_for_user_creation():
         user_id = session.get('user_id')
         user_access = User.get_user_access_info(mongo, user_id)
         
-        print(f"DEBUG SCHEMES_FOR_CREATION - User ID: {user_id}")
-        print(f"DEBUG SCHEMES_FOR_CREATION - User Access: {user_access}")
-        
         if not user_access:
             return jsonify({
                 'success': False,
@@ -1412,14 +1409,12 @@ def get_schemes_for_user_creation():
         # Check if user has all access or is superadmin
         if user_access.get('has_all_access') or user_access.get('is_superadmin'):
             # Get all active schemes
-            print(f"DEBUG SCHEMES_FOR_CREATION - Loading all schemes (superadmin/all access)")
             schemes_result = Scheme.get_all_schemes(mongo, active_only=True)
             if schemes_result['success']:
                 schemes = schemes_result['schemes']
         else:
             # Get only schemes the user has access to
             scheme_access = user_access.get('scheme_access', [])
-            print(f"DEBUG SCHEMES_FOR_CREATION - User scheme access: {scheme_access}")
             
             if scheme_access and 'all' not in scheme_access:
                 try:
@@ -1432,7 +1427,6 @@ def get_schemes_for_user_creation():
                         'is_active': True
                     }).sort('name', 1))
                     
-                    print(f"DEBUG SCHEMES_FOR_CREATION - Loaded {len(schemes)} schemes for admin")
                 except Exception as e:
                     print(f"ERROR SCHEMES_FOR_CREATION - Converting scheme IDs: {e}")
                     import traceback
@@ -1440,7 +1434,6 @@ def get_schemes_for_user_creation():
                     schemes = []
             elif 'all' in scheme_access:
                 # User has 'all' access - get all schemes
-                print(f"DEBUG SCHEMES_FOR_CREATION - User has 'all' scheme access")
                 schemes_result = Scheme.get_all_schemes(mongo, active_only=True)
                 if schemes_result['success']:
                     schemes = schemes_result['schemes']
@@ -1458,8 +1451,6 @@ def get_schemes_for_user_creation():
                 'department_name': dept['name'] if dept else 'Unknown Department',
                 'attributes': scheme.get('attributes', [])
             })
-        
-        print(f"DEBUG SCHEMES_FOR_CREATION - Returning {len(schemes_with_dept)} schemes")
         
         return jsonify({
             'success': True,
@@ -1687,7 +1678,6 @@ def download_records_api():
         department_ids = [department_id] if department_id else None
         scheme_ids = [scheme_id] if scheme_id else None
         
-        # Get filtered records
         result = PanchayatRecord.get_all_records(
             mongo, 
             page=1, 
