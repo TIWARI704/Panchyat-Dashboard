@@ -4,10 +4,22 @@
 
 {% block content %}
 <div class="container-fluid">
-    <div class="row">
+    <!-- Add breadcrumb navigation -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('user.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">My Records</li>
+        </ol>
+    </nav>
+
+    <!-- Enhanced header with statistics -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0 text-gray-800">My Records</h1>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1 text-gray-800">My Records</h1>
+                    <p class="text-muted mb-0">View and search your submitted records</p>
+                </div>
                 <a href="{{ url_for('user.dashboard') }}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Dashboard
                 </a>
@@ -15,28 +27,120 @@
         </div>
     </div>
 
-    <!-- Search Section -->
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Records
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_records }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Active Records
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ records|selectattr('is_active')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Schemes Used
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ records|map(attribute='scheme_name')|unique|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Recent (7 days)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ records|selectattr('created_at')|list|length }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enhanced Search Section -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-search"></i> Search Records
+                    </h6>
+                </div>
                 <div class="card-body">
                     <form method="GET" class="row g-3">
                         <div class="col-md-10">
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-search"></i>
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text bg-white">
+                                    <i class="fas fa-search text-primary"></i>
                                 </span>
-                                <input type="text" class="form-control" name="search" 
+                                <input type="text" class="form-control border-start-0" name="search" 
                                        placeholder="Search by beneficiary name, panchayat, village, or registration number..." 
-                                       value="{{ search if search else '' }}">
-                                <button class="btn btn-primary" type="submit">
-                                    Search
+                                       value="{{ search if search else '' }}"
+                                       autofocus>
+                                <button class="btn btn-primary px-4" type="submit">
+                                    <i class="fas fa-search me-2"></i> Search
                                 </button>
                             </div>
+                            {% if search %}
+                            <small class="text-muted mt-1 d-block">
+                                <i class="fas fa-info-circle"></i> Showing results for: <strong>"{{ search }}"</strong>
+                            </small>
+                            {% endif %}
                         </div>
                         <div class="col-md-2">
-                            <a href="{{ url_for('user.view_records') }}" class="btn btn-outline-secondary w-100">
-                                <i class="fas fa-redo"></i> Reset
+                            <a href="{{ url_for('user.view_records') }}" class="btn btn-outline-secondary w-100 btn-lg">
+                                <i class="fas fa-redo me-2"></i> Clear
                             </a>
                         </div>
                     </form>
@@ -45,116 +149,32 @@
         </div>
     </div>
 
-    <!-- Records Table -->
+    <!-- Dynamic Records Table (Like Admin) -->
     <div class="row">
         <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 fw-bold text-primary">
-                        <i class="fas fa-list"></i> My Records 
-                        <span class="badge bg-secondary ms-2">{{ total_records }} total</span>
-                    </h6>
-                    {% if search %}
-                    <span class="badge bg-info">
-                        <i class="fas fa-filter"></i> Search: "{{ search }}"
-                    </span>
-                    {% endif %}
+            <div class="card shadow-lg">
+                <div class="card-header py-3 bg-gradient-light">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <h6 class="m-0 fw-bold text-primary" id="recordCount">
+                            <i class="fas fa-list-ul"></i> My Records 
+                            <span class="badge bg-secondary ms-2 fs-6">{{ total_records }} total</span>
+                        </h6>
+                        {% if search %}
+                        <span class="badge bg-info text-white fs-6">
+                            <i class="fas fa-filter"></i> Filtered Results
+                        </span>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body">
                     {% if records %}
                     <div class="table-responsive">
-                        <table class="table table-hover table-bordered align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th width="15%">Scheme</th>
-                                    <th width="12%">Department</th>
-                                    <th width="40%">Record Details</th>
-                                    <th width="15%">Created</th>
-                                    <th width="10%">Status</th>
-                                    <th width="8%">Actions</th>
-                                </tr>
+                        <table class="table table-striped table-hover" id="recordsTable">
+                            <thead class="table-light" id="tableHeader">
+                                <!-- Dynamic headers will be generated here -->
                             </thead>
-                            <tbody>
-                                {% for record in records %}
-                                <tr>
-                                    <td>
-                                        <strong class="text-primary">
-                                            {{ record.scheme_name if record.scheme_name else 'Unknown Scheme' }}
-                                        </strong>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info text-white">
-                                            {{ record.department_name if record.department_name else 'Unknown' }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if record.custom_data %}
-                                            <div class="custom-data-display">
-                                                {% set displayed = 0 %}
-                                                {% for key, value in record.custom_data.items() %}
-                                                    {% if displayed < 4 %}
-                                                        <div class="row mb-1">
-                                                            <div class="col-5">
-                                                                <small class="text-muted fw-semibold">
-                                                                    {{ key.replace('_', ' ').title() }}:
-                                                                </small>
-                                                            </div>
-                                                            <div class="col-7">
-                                                                <small>
-                                                                    {% if value is mapping %}
-                                                                        {{ value }}
-                                                                    {% elif value is iterable and value is not string %}
-                                                                        {{ value|join(', ') }}
-                                                                    {% elif value is string %}
-                                                                        {{ value|truncate(30) }}
-                                                                    {% else %}
-                                                                        {{ value }}
-                                                                    {% endif %}
-                                                                </small>
-                                                            </div>
-                                                        </div>
-                                                        {% set displayed = displayed + 1 %}
-                                                    {% endif %}
-                                                {% endfor %}
-                                                {% if record.custom_data|length > 4 %}
-                                                    <small class="text-muted fst-italic">
-                                                        +{{ record.custom_data|length - 4 }} more fields...
-                                                    </small>
-                                                {% endif %}
-                                            </div>
-                                        {% else %}
-                                            <span class="text-muted fst-italic">No data available</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <small class="d-block">
-                                            <i class="fas fa-calendar-alt text-muted"></i>
-                                            {{ record.created_at.strftime('%d-%m-%Y') if record.created_at else '-' }}
-                                        </small>
-                                        <small class="text-muted">
-                                            <i class="fas fa-user text-muted"></i>
-                                            {{ record.created_by if record.created_by else 'Unknown' }}
-                                        </small>
-                                    </td>
-                                    <td>
-                                        {% if record.is_active %}
-                                            <span class="badge bg-success">
-                                                <i class="fas fa-check-circle"></i> Active
-                                            </span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">
-                                                <i class="fas fa-ban"></i> Inactive
-                                            </span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary" 
-                                                onclick="viewRecordDetails('{{ record._id['$oid'] if record._id is mapping else record._id }}')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
+                            <tbody id="tableBody">
+                                <!-- Dynamic rows will be generated here -->
                             </tbody>
                         </table>
                     </div>
@@ -231,7 +251,7 @@
 
 <!-- Record Details Modal - Bootstrap 5 -->
 <div class="modal fade" id="recordDetailsModal" tabindex="-1" aria-labelledby="recordDetailsLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="recordDetailsLabel">
@@ -260,142 +280,394 @@
 
 {% block scripts %}
 <script>
-function viewRecordDetails(recordId) {
-    // Show loading state
-    const modalContent = document.getElementById('recordDetailsContent');
-    modalContent.innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+    // Store records data from Jinja
+    const recordsData = {{ records|tojson|safe }};
+    
+    // Global variables for data management
+    let allFields = new Set();
+    let fieldSchemes = new Map();
+
+    // Format field values
+    function formatFieldValue(value) {
+        if (!value) return '-';
+
+        // Handle date objects
+        if (value instanceof Date) {
+            return value.toLocaleDateString();
+        }
+
+        // Handle date strings
+        if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+            try {
+                const date = new Date(value);
+                return date.toLocaleDateString();
+            } catch (e) {
+                return value;
+            }
+        }
+
+        // Handle objects (like MongoDB date objects)
+        if (typeof value === 'object' && value !== null) {
+            if (value.$date) {
+                return new Date(value.$date).toLocaleDateString();
+            }
+            return JSON.stringify(value);
+        }
+
+        return value;
+    }
+
+    // Generate table headers
+    function generateTableHeaders() {
+        const thead = document.getElementById('tableHeader');
+        if (!thead) return;
+
+        const headerRow = document.createElement('tr');
+
+        // Add dynamic columns for each field
+        allFields.forEach(field => {
+            const th = document.createElement('th');
+            th.textContent = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            th.style.minWidth = '150px';
+            headerRow.appendChild(th);
+        });
+
+        // Add action column (sticky to right)
+        const actionTh = document.createElement('th');
+        actionTh.innerHTML = 'Actions';
+        actionTh.className = 'action-column';
+        actionTh.style.position = 'sticky';
+        actionTh.style.right = '0';
+        actionTh.style.backgroundColor = '#f8f9fc';
+        actionTh.style.zIndex = '10';
+        actionTh.style.borderLeft = '2px solid #dee2e6';
+        actionTh.style.minWidth = '100px';
+        actionTh.style.textAlign = 'center';
+        actionTh.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.1)';
+        headerRow.appendChild(actionTh);
+
+        thead.innerHTML = '';
+        thead.appendChild(headerRow);
+    }
+
+    // Generate table rows
+    function generateTableRows(records) {
+        const tbody = document.getElementById('tableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        records.forEach(record => {
+            const row = document.createElement('tr');
+
+            // Add data cells for each field
+            allFields.forEach(field => {
+                const td = document.createElement('td');
+                const value = record.custom_data && record.custom_data[field] 
+                    ? record.custom_data[field] 
+                    : '-';
+                td.textContent = formatFieldValue(value);
+                row.appendChild(td);
+            });
+
+            // Add action cell (sticky)
+            const actionTd = document.createElement('td');
+            actionTd.className = 'action-column';
+            actionTd.style.position = 'sticky';
+            actionTd.style.right = '0';
+            actionTd.style.backgroundColor = '#fff';
+            actionTd.style.zIndex = '5';
+            actionTd.style.borderLeft = '2px solid #dee2e6';
+            actionTd.style.textAlign = 'center';
+            actionTd.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.05)';
+            
+            const recordId = record._id && record._id.$oid ? record._id.$oid : record._id;
+            actionTd.innerHTML = `
+                <button class="btn btn-sm btn-outline-primary" onclick="viewRecordDetails('${recordId}')">
+                    <i class="fas fa-eye"></i> View
+                </button>
+            `;
+            row.appendChild(actionTd);
+
+            tbody.appendChild(row);
+        });
+    }
+
+    // Update records table
+    function updateRecordsTable(records) {
+        // Clear existing data
+        allFields.clear();
+        fieldSchemes.clear();
+
+        if (records.length === 0) {
+            showNoRecordsMessage();
+            return;
+        }
+
+        // Collect all unique fields from custom_data
+        records.forEach(record => {
+            if (record.custom_data) {
+                Object.keys(record.custom_data).forEach(key => {
+                    allFields.add(key);
+                });
+            }
+        });
+
+        // Generate dynamic headers
+        generateTableHeaders();
+
+        // Generate table rows
+        generateTableRows(records);
+
+        // Update record count
+        updateRecordCount(records.length);
+    }
+
+    // Show no records message
+    function showNoRecordsMessage() {
+        const tbody = document.getElementById('tableBody');
+        const thead = document.getElementById('tableHeader');
+
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-4">No records found</td></tr>';
+        }
+
+        if (thead) {
+            thead.innerHTML = '<tr><th class="text-center py-4">No Data</th></tr>';
+        }
+    }
+
+    // Update record count
+    function updateRecordCount(count) {
+        const recordCountElement = document.getElementById('recordCount');
+        if (recordCountElement) {
+            recordCountElement.innerHTML = `
+                <i class="fas fa-list-ul"></i> My Records 
+                <span class="badge bg-secondary ms-2 fs-6">${count} total</span>
+            `;
+        }
+    }
+
+    // View record details
+    function viewRecordDetails(recordId) {
+        const modalContent = document.getElementById('recordDetailsContent');
+        modalContent.innerHTML = `
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-muted">Loading record details...</p>
             </div>
-            <p class="mt-3 text-muted">Loading record details...</p>
-        </div>
-    `;
-    
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('recordDetailsModal'));
-    modal.show();
-    
-    // Fetch record details
-    fetch(`/user/api/record-details/${recordId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const record = data.record;
-                let customDataHtml = '';
-                
-                if (record.custom_data) {
-                    customDataHtml = '<div class="row">';
-                    for (const [key, value] of Object.entries(record.custom_data)) {
-                        customDataHtml += `
-                            <div class="col-md-6 mb-3">
-                                <div class="card bg-light">
-                                    <div class="card-body py-2">
-                                        <small class="text-muted d-block">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</small>
-                                        <strong>${value || '-'}</strong>
+        `;
+        
+        const modal = new bootstrap.Modal(document.getElementById('recordDetailsModal'));
+        modal.show();
+        
+        fetch(`/user/api/record-details/${recordId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const record = data.record;
+                    let customDataHtml = '';
+                    
+                    if (record.custom_data) {
+                        customDataHtml = '<div class="row">';
+                        for (const [key, value] of Object.entries(record.custom_data)) {
+                            customDataHtml += `
+                                <div class="col-md-6 mb-3">
+                                    <div class="card bg-light">
+                                        <div class="card-body py-2">
+                                            <small class="text-muted d-block">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</small>
+                                            <strong>${formatFieldValue(value)}</strong>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
+                        }
+                        customDataHtml += '</div>';
                     }
-                    customDataHtml += '</div>';
+                    
+                    modalContent.innerHTML = `
+                        <div class="container-fluid">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">Scheme</h6>
+                                    <p class="fw-bold text-primary">${record.scheme_name || 'Unknown'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">Department</h6>
+                                    <p><span class="badge bg-info">${record.department_name || 'Unknown'}</span></p>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">Created By</h6>
+                                    <p><i class="fas fa-user"></i> ${record.created_by || 'Unknown'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6 class="text-muted mb-2">Created On</h6>
+                                    <p><i class="fas fa-calendar"></i> ${record.created_at || '-'}</p>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <h6 class="text-muted mb-3">Record Data</h6>
+                            ${customDataHtml || '<p class="text-muted fst-italic">No custom data available</p>'}
+                        </div>
+                    `;
+                } else {
+                    modalContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> ${data.message || 'Error loading record details'}
+                        </div>
+                    `;
                 }
-                
-                modalContent.innerHTML = `
-                    <div class="container-fluid">
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <h6 class="text-muted mb-2">Scheme</h6>
-                                <p class="fw-bold text-primary">${record.scheme_name || 'Unknown'}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="text-muted mb-2">Department</h6>
-                                <p><span class="badge bg-info">${record.department_name || 'Unknown'}</span></p>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <h6 class="text-muted mb-2">Created By</h6>
-                                <p><i class="fas fa-user"></i> ${record.created_by || 'Unknown'}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="text-muted mb-2">Created On</h6>
-                                <p><i class="fas fa-calendar"></i> ${record.created_at || '-'}</p>
-                            </div>
-                        </div>
-                        
-                        <hr>
-                        
-                        <h6 class="text-muted mb-3">Record Data</h6>
-                        ${customDataHtml || '<p class="text-muted fst-italic">No custom data available</p>'}
-                    </div>
-                `;
-            } else {
+            })
+            .catch(error => {
+                console.error('Error fetching record details:', error);
                 modalContent.innerHTML = `
                     <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i> ${data.message || 'Error loading record details'}
+                        <i class="fas fa-exclamation-triangle"></i> Error loading record details. Please try again.
                     </div>
                 `;
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching record details:', error);
-            modalContent.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle"></i> Error loading record details. Please try again.
-                </div>
-            `;
-        });
-}
+            });
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        if (recordsData && recordsData.length > 0) {
+            updateRecordsTable(recordsData);
+        } else {
+            showNoRecordsMessage();
+        }
+    });
 </script>
 
 <style>
-.custom-data-display {
-    font-size: 0.875rem;
-    line-height: 1.5;
+/* Card border styles */
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
 }
 
-.custom-data-display .row {
-    margin-bottom: 0.25rem;
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
 }
 
-.table td {
-    vertical-align: middle;
+.border-left-info {
+    border-left: 0.25rem solid #36b9cc !important;
 }
 
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
 }
 
-.badge {
-    padding: 0.35rem 0.65rem;
-    font-weight: 500;
+/* Gradient backgrounds */
+.bg-gradient-primary {
+    background: linear-gradient(180deg, #4e73df 10%, #224abe 100%);
 }
 
-.card {
-    transition: all 0.3s ease;
+.bg-gradient-light {
+    background: linear-gradient(180deg, #f8f9fc 10%, #eaecf4 100%);
 }
 
-.btn-sm {
+/* Sticky action column styles */
+#recordsTable {
+    position: relative;
+}
+
+#recordsTable th:last-child,
+#recordsTable td:last-child {
+    position: sticky;
+    right: 0;
+    z-index: 5;
+}
+
+#recordsTable thead th:last-child {
+    z-index: 10;
+}
+
+#recordsTable tbody tr:hover td:last-child {
+    background-color: rgba(78, 115, 223, 0.05);
+}
+
+/* Ensure table container has proper overflow */
+.table-responsive {
+    overflow-x: auto;
+    position: relative;
+}
+
+/* Action column specific styles */
+.action-column {
+    background-color: #fff;
+}
+
+.action-column .btn-group {
+    display: flex;
+    gap: 4px;
+}
+
+.action-column .btn {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
 }
 
-/* Responsive adjustments */
+/* Enhanced table styling */
+.table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    background-color: #f8f9fc;
+}
+
+.table tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(78, 115, 223, 0.05);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Search input enhancement */
+.form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+/* Modal improvements */
+.modal-header.bg-primary {
+    background: linear-gradient(180deg, #4e73df 10%, #224abe 100%) !important;
+}
+
+/* Pagination styling */
+.pagination .page-link {
+    border-radius: 50%;
+    margin: 0 2px;
+    min-width: 38px;
+    text-align: center;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+/* Responsive improvements */
 @media (max-width: 768px) {
-    .custom-data-display .row {
-        flex-direction: column;
+    .input-group-lg {
+        font-size: 1rem;
     }
     
-    .custom-data-display .col-5,
-    .custom-data-display .col-7 {
-        width: 100%;
-        max-width: 100%;
+    .card-header h6 {
+        font-size: 0.9rem;
     }
     
-    .table {
-        font-size: 0.85rem;
+    #recordsTable th,
+    #recordsTable td {
+        min-width: 120px;
     }
 }
 </style>
