@@ -96,7 +96,11 @@ class User:
         """Authenticate user login"""
         try:
             user = mongo.db.users.find_one({'username': username})
-            if user and check_password_hash(user['password'], password):
+
+            if not user.get('is_active', True):
+                return {'success': False, 'message': 'Your account has been deactivated. Please contact the administrator.'}
+            
+            if check_password_hash(user['password'], password):
                 # Update last login
                 mongo.db.users.update_one(
                     {'_id': user['_id']},
