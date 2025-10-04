@@ -465,3 +465,132 @@ def get_record_details(record_id):
             'success': False,
             'message': f'Error fetching record details: {str(e)}'
         })
+
+@user_bp.route('/api/user-filter-data')
+@login_required
+def get_user_filter_data():
+    """Get user's accessible schemes for filter dropdown"""
+    try:
+        user_id = session.get('user_id')
+        user_access = User.get_user_access_info(mongo, user_id)
+        
+        if not user_access:
+            return jsonify({'success': False, 'message': 'User access not found'})
+        
+        scheme_access = user_access.get('scheme_access', [])
+        
+        # Get schemes user has access to
+        if 'all' in scheme_access:
+            schemes_result = Scheme.get_all_schemes(mongo, active_only=True)
+        else:
+            schemes_result = Scheme.get_schemes_by_ids(mongo, scheme_access)
+        
+        if not schemes_result['success']:
+            return jsonify({'success': False, 'message': 'Error loading schemes'})
+        
+        schemes = schemes_result['schemes']
+        
+        # Convert ObjectId to string
+        for scheme in schemes:
+            if '_id' in scheme:
+                scheme['_id'] = {'$oid': str(scheme['_id'])}
+            if 'department_id' in scheme:
+                scheme['department_id'] = {'$oid': str(scheme['department_id'])}
+        
+        return jsonify({
+            'success': True,
+            'schemes': schemes
+        })
+        
+    except Exception as e:
+        print(f"ERROR in get_user_filter_data: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+@user_bp.route('/api/dashboard-data')
+@login_required
+def get_user_dashboard_data():
+    """Get dashboard data for user based on filters"""
+    try:
+        user_id = session.get('user_id')
+        user_access = User.get_user_access_info(mongo, user_id)
+        
+        if not user_access:
+            return jsonify({'success': False, 'message': 'User access not found'})
+        
+        # Get filter parameters
+        scheme_id = request.args.get('scheme_id')
+        taluka = request.args.get('taluka')
+        
+        # Build query
+        query = {'is_active': True}
+        
+        # Apply user's access restrictions
+        department_access = user_access.get('department_access', [])
+        scheme_access = user_access.get('scheme_access', [])
+        
+        has_all_access = user_access.get('has_all_access', False)
+        
+        if not has_all_access:
+            if department_access and 'all' not in department_access:
+                dept_ids = [ObjectId(dep_id) for dep_id in department_access if dep_id != 'all']
+                if dept_ids:
+                    query['department_id'] = {'$in': dept_ids}
+            
+            if scheme_access and 'all' not in scheme_access:
+                scheme_ids = [ObjectId(s_id) for s_id in scheme_access if s_id != 'all']
+                if scheme_ids:
+                    query['scheme_id'] = {'$in': scheme_ids}
+        
+        # Apply additional filters
+        if scheme_id:
+            query['scheme_id'] = ObjectId(scheme_id)
+        
+        if taluka:
+            query['custom_data.taluka'] = taluka
+        
+        # Get records with aggregation
+        pipeline = [
+            {'$match': query},
+            {'$lookup': {
+                'from': 'departments',
+                'localField': 'department_id',
+                'foreignField': '_id',
+                'as': 'department'
+            }},
+            {'$lookup': {
+                'from': 'schemes',
+                'localField': 'scheme_id',
+                'foreignField': '_id',
+                'as': 'scheme'
+            }},
+            {'$addFields': {
+                'department_name': {'$arrayElemAt': ['$department.name', 0]},
+                'scheme_name': {'$arrayElemAt': ['$scheme.name', 0]}
+            }},
+            {'$sort': {'created_at': -1}},
+            {'$limit': 1000}  # Limit for performance
+        ]
+        
+        records = list(mongo.db.panchayat_records.aggregate(pipeline))
+        
+        # Convert ObjectId to string
+        for record in records:
+            if '_id' in record:
+                record['_id'] = str(record['_id'])
+            if 'department_id' in record:
+                record['department_id'] = str(record['department_id'])
+            if 'scheme_id' in record:
+                record['scheme_id'] = str(record['scheme_id'])
+            if 'created_at' in record:
+                record['created_at'] = record['created_at'].isoformat()
+        
+        return jsonify({
+            'success': True,
+            'records': records
+        })
+        
+    except Exception as e:
+        print(f"ERROR in get_user_dashboard_data: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'message': str(e)})
