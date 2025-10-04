@@ -358,8 +358,18 @@
         } else {
             hiddenInput.value = selectedValues.join(',');
         }
+        const schemeItems = document.querySelectorAll('.scheme-checkbox');
+        schemeItems.forEach(cb => {
+            const schemeDeptId = cb.getAttribute('data-department');
+            if (selectedValues.includes(schemeDeptId) || allCheckbox.checked) {
+                cb.checked = true;
+            } else {
+                cb.checked = false;
+            }
+        });
 
         // Update scheme options visibility
+        updateSchemeSelection();
         updateSchemeOptionsVisibility();
     }
 
@@ -376,6 +386,25 @@
         } else {
             hiddenInput.value = selectedValues.join(',');
         }
+
+        const departmentCheckboxes = document.querySelectorAll('.department-checkbox');
+        departmentCheckboxes.forEach(deptCb => {
+            const deptId = deptCb.value;
+            const deptSchemes = document.querySelectorAll(`.scheme-checkbox[data-department="${deptId}"]`);
+            const checkedSchemes = Array.from(deptSchemes).filter(cb => cb.checked);
+
+            if (deptSchemes.length > 0 && checkedSchemes.length === deptSchemes.length) {
+                deptCb.checked = true;
+            } else if (checkedSchemes.length === 0){
+                deptCb.checked = false;
+            } else {
+                deptCb.checked = false;
+            }
+        });
+         
+        const selectedDepts = Array.from(document.querySelectorAll('.department-checkbox:checked:not(:disabled)')).map(cb => cb.value);
+        const deptHidden = document.getElementById('department_access');
+        deptHidden.value = document.getElementById('dept_all').checked ? 'all' : selectedDepts.join(',');
     }
 
     // Update scheme visibility based on selected departments
