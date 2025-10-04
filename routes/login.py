@@ -40,6 +40,11 @@ def login():
         
         if auth_result['success']:
             user = auth_result['user']
+
+            if not user.get("is_active", True):
+                flash("Your account is inactive. Please contact administrator.", "error")
+                return render_template("login.html")
+            
             session["user_id"] = str(user["_id"])
             session["username"] = user["username"]
             session["is_admin"] = user.get("is_admin", False)
@@ -102,6 +107,28 @@ def register():
         
     return render_template("register.html")
 
+@login_bp.before_app_request
+def check_user_active_status():
+    """
+    Middleware to check if the logged-in user is active.
+    
+    If the user is inactive, they are logged out and redirected to login page.
+    """
+    if request.endpoint in ['login.login', 'login.logout', 'login.register', 'static']:
+        return
+
+    if 'user_id' in session:
+        try:
+            user = User.get_user_by_id(mongo, session['user_id'])
+            if not user or not user.get("is_active", True):
+                session.clear()
+                flash("Your account has been deactivated. Please contact administrator.", "error")
+                return redirect(url_for("login.login"))
+        except Exception as e:
+            session.clear()
+            flash("An error occurred. Please log in again.", "error")
+            return redirect(url_for("login.login"))
+
 def login_required(f):
     """
     Decorator to require user login for accessing a route.
@@ -112,6 +139,17 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if "user_id" not in session:
             flash("Please log in to access this page.", "error")
+            return redirect(url_for("login.login"))
+        
+        try:
+            user = User.get_user_by_id(mongo, session['user_id'])
+            if not user or not user.get("is_active", True):
+                session.clear()
+                flash("Your account has been deactivated. Please contact administrator.", "error")
+                return redirect(url_for("login.login"))
+        except Exception as e:
+            session.clear()
+            flash("An error occurred. Please log in again.", "error")
             return redirect(url_for("login.login"))
         return f(*args, **kwargs)
     return decorated_function
@@ -127,6 +165,17 @@ def admin_required(f):
         if "user_id" not in session or not session.get("is_admin"):
             flash("Admin access required.", "error")
             return redirect(url_for("login.login"))
+        
+        try:
+            user = User.get_user_by_id(mongo, session['user_id'])
+            if not user or not user.get("is_active", True):
+                session.clear()
+                flash("Your account has been deactivated. Please contact administrator.", "error")
+                return redirect(url_for("login.login"))
+        except Exception as e:
+            session.clear()
+            flash("An error occurred. Please log in again.", "error")
+            return redirect(url_for("login.login"))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -140,6 +189,17 @@ def superadmin_required(f):
     def decorated_function(*args, **kwargs):
         if "user_id" not in session or not session.get("is_superadmin"):
             flash("Super Admin access required.", "error")
+            return redirect(url_for("login.login"))
+        
+        try:
+            user = User.get_user_by_id(mongo, session['user_id'])
+            if not user or not user.get("is_active", True):
+                session.clear()
+                flash("Your account has been deactivated. Please contact administrator.", "error")
+                return redirect(url_for("login.login"))
+        except Exception as e:
+            session.clear()
+            flash("An error occurred. Please log in again.", "error")
             return redirect(url_for("login.login"))
         return f(*args, **kwargs)
     return decorated_function
@@ -160,6 +220,17 @@ def can_edit_records(f):
         if not session.get("is_superadmin"):
             flash("Only Super Admin can edit records.", "error")
             return redirect(url_for("admin.dashboard"))
+        
+        try:
+            user = User.get_user_by_id(mongo, session['user_id'])
+            if not user or not user.get("is_active", True):
+                session.clear()
+                flash("Your account has been deactivated. Please contact administrator.", "error")
+                return redirect(url_for("login.login"))
+        except Exception as e:
+            session.clear()
+            flash("An error occurred. Please log in again.", "error")
+            return redirect(url_for("login.login"))
         
         return f(*args, **kwargs)
     return decorated_function

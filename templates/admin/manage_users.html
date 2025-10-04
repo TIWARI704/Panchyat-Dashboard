@@ -81,13 +81,6 @@
                                 <i class="fas fa-edit"></i> Edit
                             </a>
                         </td>
-                        <td>
-                            <a href="{{ url_for('admin.delete_user', user_id=user._id) }}"
-                                class="btn btn-sm btn-outline-danger"
-                                onclick="return confirm('Are you sure you want to delete this user?');">
-                                <i class="fas fa-trash-alt"></i> Delete
-                            </a>
-                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -125,7 +118,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -173,7 +165,7 @@
                                         <input class="form-check-input" type="checkbox" id="dept_all" value="all" 
                                                onchange="toggleAllDepartments(this)">
                                         <label class="form-check-label fw-bold" for="dept_all">
-                                            Select All Departments
+                                            All Departments
                                         </label>
                                     </div>
                                     <div id="departmentOptions">
@@ -192,7 +184,7 @@
                                         <input class="form-check-input" type="checkbox" id="scheme_all" value="all" 
                                                onchange="toggleAllSchemes(this)">
                                         <label class="form-check-label fw-bold" for="scheme_all">
-                                            Select All Schemes
+                                            All Schemes
                                         </label>
                                     </div>
                                     <div id="schemeOptions">
@@ -366,8 +358,18 @@
         } else {
             hiddenInput.value = selectedValues.join(',');
         }
+        const schemeItems = document.querySelectorAll('.scheme-checkbox');
+        schemeItems.forEach(cb => {
+            const schemeDeptId = cb.getAttribute('data-department');
+            if (selectedValues.includes(schemeDeptId) || allCheckbox.checked) {
+                cb.checked = true;
+            } else {
+                cb.checked = false;
+            }
+        });
 
         // Update scheme options visibility
+        updateSchemeSelection();
         updateSchemeOptionsVisibility();
     }
 
@@ -384,6 +386,25 @@
         } else {
             hiddenInput.value = selectedValues.join(',');
         }
+
+        const departmentCheckboxes = document.querySelectorAll('.department-checkbox');
+        departmentCheckboxes.forEach(deptCb => {
+            const deptId = deptCb.value;
+            const deptSchemes = document.querySelectorAll(`.scheme-checkbox[data-department="${deptId}"]`);
+            const checkedSchemes = Array.from(deptSchemes).filter(cb => cb.checked);
+
+            if (deptSchemes.length > 0 && checkedSchemes.length === deptSchemes.length) {
+                deptCb.checked = true;
+            } else if (checkedSchemes.length === 0){
+                deptCb.checked = false;
+            } else {
+                deptCb.checked = false;
+            }
+        });
+         
+        const selectedDepts = Array.from(document.querySelectorAll('.department-checkbox:checked:not(:disabled)')).map(cb => cb.value);
+        const deptHidden = document.getElementById('department_access');
+        deptHidden.value = document.getElementById('dept_all').checked ? 'all' : selectedDepts.join(',');
     }
 
     // Update scheme visibility based on selected departments

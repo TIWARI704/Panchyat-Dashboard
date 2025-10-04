@@ -128,185 +128,185 @@
 
 {% block scripts %}
 <script>
-    // Store user's current access for reference
-    const userDeptAccess = {{ (user.department_access or [])|tojson|safe }};
-    const userSchemeAccess = {{ (user.scheme_access or [])|tojson|safe }};
-    
-    let allDepartments = [];
-    let allSchemes = [];
+const userDeptAccess = {{ (user.department_access or [])|tojson|safe }};
+const userSchemeAccess = {{ (user.scheme_access or [])|tojson|safe }};
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Load data when page loads
-        loadDepartmentsAndSchemes();
+let allDepartments = [];
+let allSchemes = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadDepartmentsAndSchemes();
+});
+
+async function loadDepartmentsAndSchemes() {
+    try {
+        const [deptRes, schemeRes] = await Promise.all([
+            fetch('/admin/api/departments-for-user-creation'),
+            fetch('/admin/api/schemes-for-user-creation')
+        ]);
+
+        const deptData = await deptRes.json();
+        const schemeData = await schemeRes.json();
+
+        if (deptData.success) {
+            allDepartments = deptData.departments;
+            populateDepartments(deptData.departments);
+        }
+        if (schemeData.success) {
+            allSchemes = schemeData.schemes;
+            populateSchemes(schemeData.schemes);
+        }
+
+        // ✅ Apply existing selections and visibility *after* both have loaded
+        applyExistingSelections();
+        updateSchemeOptionsVisibility();
+
+    } catch (error) {
+        console.error('Error loading data:', error);
+    }
+}
+
+function populateDepartments(departments) {
+    const container = document.getElementById('departmentOptions');
+    container.innerHTML = '';
+    
+    const isAllSelected = userDeptAccess.includes('all');
+
+    departments.forEach(dept => {
+        const div = document.createElement('div');
+        div.className = 'form-check mb-2';
+        const isChecked = isAllSelected || userDeptAccess.includes(dept.id);
+        const isDisabled = isAllSelected;
+
+        div.innerHTML = `
+            <input class="form-check-input department-checkbox" type="checkbox"
+                   id="dept_${dept.id}" name="department_access" value="${dept.id}"
+                   ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}
+                   onchange="updateDepartmentSelection()">
+            <label class="form-check-label" for="dept_${dept.id}">${dept.name}</label>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function populateSchemes(schemes) {
+    const container = document.getElementById('schemeOptions');
+    container.innerHTML = '';
+    
+    const isAllSelected = userSchemeAccess.includes('all');
+    const groupedSchemes = {};
+
+    schemes.forEach(s => {
+        const deptName = s.department_name || 'Other';
+        if (!groupedSchemes[deptName]) groupedSchemes[deptName] = [];
+        groupedSchemes[deptName].push(s);
     });
 
-    // Function to load departments and schemes
-    function loadDepartmentsAndSchemes() {
-        console.log('Loading departments and schemes...');
-        console.log('User department access:', userDeptAccess);
-        console.log('User scheme access:', userSchemeAccess);
+    Object.keys(groupedSchemes).sort().forEach(deptName => {
+        const header = document.createElement('div');
+        header.className = 'fw-bold text-primary mt-2 mb-1 ps-2';
+        header.textContent = deptName;
+        container.appendChild(header);
 
-        // Load departments
-        fetch('/admin/api/departments-for-user-creation')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    allDepartments = data.departments;
-                    populateDepartments(data.departments);
-                } else {
-                    console.error('Error loading departments:', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading departments:', error);
-            });
-        
-        // Load schemes
-        fetch('/admin/api/schemes-for-user-creation')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    allSchemes = data.schemes;
-                    populateSchemes(data.schemes);
-                } else {
-                    console.error('Error loading schemes:', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading schemes:', error);
-            });
-    }
-    
-    function populateDepartments(departments) {
-        const container = document.getElementById('departmentOptions');
-        container.innerHTML = '';
-        
-        const isAllSelected = userDeptAccess.includes('all');
-        
-        departments.forEach(dept => {
+        groupedSchemes[deptName].forEach(scheme => {
             const div = document.createElement('div');
-            div.className = 'form-check mb-2';
-            
-            const isChecked = isAllSelected || userDeptAccess.includes(dept.id);
+            div.className = 'form-check mb-2 ms-3';
+            div.setAttribute('data-department-id', scheme.department_id);
+
+            const isChecked = isAllSelected || userSchemeAccess.includes(scheme.id);
             const isDisabled = isAllSelected;
-            
+
             div.innerHTML = `
-                <input class="form-check-input department-checkbox" type="checkbox" 
-                       id="dept_${dept.id}" name="department_access" value="${dept.id}" 
+                <input class="form-check-input scheme-checkbox" type="checkbox"
+                       id="scheme_${scheme.id}" name="scheme_access" value="${scheme.id}"
+                       data-department="${scheme.department_id}"
                        ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}
-                       onchange="updateDepartmentSelection()">
-                <label class="form-check-label" for="dept_${dept.id}">
-                    ${dept.name}
-                </label>
+                       onchange="updateSchemeSelection()">
+                <label class="form-check-label" for="scheme_${scheme.id}">${scheme.name}</label>
             `;
             container.appendChild(div);
         });
-        
-        console.log(`Populated ${departments.length} departments`);
-    }
-    
-    function populateSchemes(schemes) {
-        const container = document.getElementById('schemeOptions');
-        container.innerHTML = '';
-        
-        const isAllSelected = userSchemeAccess.includes('all');
-        
-        // Group schemes by department
-        const groupedSchemes = {};
-        schemes.forEach(scheme => {
-            const deptName = scheme.department_name || 'Other';
-            if (!groupedSchemes[deptName]) {
-                groupedSchemes[deptName] = [];
-            }
-            groupedSchemes[deptName].push(scheme);
-        });
-        
-        // Add grouped schemes
-        Object.keys(groupedSchemes).sort().forEach(deptName => {
-            // Add department header
-            const header = document.createElement('div');
-            header.className = 'fw-bold text-primary mt-2 mb-1 ps-2';
-            header.style.fontSize = '0.875rem';
-            header.textContent = deptName;
-            container.appendChild(header);
-            
-            // Add schemes for this department
-            groupedSchemes[deptName].forEach(scheme => {
-                const div = document.createElement('div');
-                div.className = 'form-check mb-2 ms-3';
-                div.setAttribute('data-department-id', scheme.department_id);
-                
-                const isChecked = isAllSelected || userSchemeAccess.includes(scheme.id);
-                const isDisabled = isAllSelected;
-                
-                div.innerHTML = `
-                    <input class="form-check-input scheme-checkbox" type="checkbox" 
-                           id="scheme_${scheme.id}" name="scheme_access" value="${scheme.id}"
-                           data-department="${scheme.department_id}"
-                           ${isChecked ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}
-                           onchange="updateSchemeSelection()">
-                    <label class="form-check-label" for="scheme_${scheme.id}">
-                        ${scheme.name}
-                    </label>
-                `;
-                container.appendChild(div);
-            });
-        });
-        
-        console.log(`Populated ${schemes.length} schemes`);
-        updateSchemeOptionsVisibility();
-    }
+    });
+}
 
-    // Toggle all departments
-    function toggleAllDepartments(checkbox) {
-        const allCheckboxes = document.querySelectorAll('.department-checkbox');
-        allCheckboxes.forEach(cb => {
-            cb.checked = checkbox.checked;
-            cb.disabled = checkbox.checked;
-        });
-        updateSchemeOptionsVisibility();
-    }
+function applyExistingSelections() {
+    // Handle "Select All" logic
+    const deptAll = document.getElementById('dept_all');
+    const schemeAll = document.getElementById('scheme_all');
+    if (userDeptAccess.includes('all')) deptAll.checked = true;
+    if (userSchemeAccess.includes('all')) schemeAll.checked = true;
+}
 
-    // Toggle all schemes
-    function toggleAllSchemes(checkbox) {
-        const allCheckboxes = document.querySelectorAll('.scheme-checkbox');
-        allCheckboxes.forEach(cb => {
-            cb.checked = checkbox.checked;
-            cb.disabled = checkbox.checked;
-        });
-    }
+function toggleAllDepartments(checkbox) {
+    document.querySelectorAll('.department-checkbox').forEach(cb => {
+        cb.checked = checkbox.checked;
+        cb.disabled = checkbox.checked;
+    });
+    updateSchemeOptionsVisibility();
+}
 
-    // Update department selection display
-    function updateDepartmentSelection() {
-        updateSchemeOptionsVisibility();
-    }
+function toggleAllSchemes(checkbox) {
+    document.querySelectorAll('.scheme-checkbox').forEach(cb => {
+        cb.checked = checkbox.checked;
+        cb.disabled = checkbox.checked;
+    });
+}
 
-    // Update scheme selection display
-    function updateSchemeSelection() {
-        // This function can be used for validation if needed
-    }
+function updateDepartmentSelection() {
+    // Get all selected departments
+    const selectedDepts = Array.from(
+        document.querySelectorAll('.department-checkbox:checked:not(:disabled)')
+    ).map(cb => cb.value);
 
-    // Update scheme visibility based on selected departments
-    function updateSchemeOptionsVisibility() {
-        const deptAllCheckbox = document.getElementById('dept_all');
-        const selectedDepts = Array.from(document.querySelectorAll('.department-checkbox:checked:not(:disabled)')).map(cb => cb.value);
+    // Loop through all schemes and toggle based on selected departments
+    document.querySelectorAll('.scheme-checkbox').forEach(scb => {
+        const schemeDept = scb.dataset.department;
+        const schemeAll = document.getElementById('scheme_all').checked;
+        const deptAll = document.getElementById('dept_all').checked;
 
-        const schemeItems = document.querySelectorAll('#schemeOptions .form-check[data-department-id]');
+        // If "Select All" is active, skip logic (already handled)
+        if (deptAll || schemeAll) return;
 
-        schemeItems.forEach(item => {
-            const deptId = item.getAttribute('data-department-id');
-            if (deptAllCheckbox.checked || selectedDepts.length === 0 || selectedDepts.includes(deptId)) {
-                item.style.display = 'block';
-            } else {
-                item.style.display = 'none';
-                // Uncheck hidden schemes
-                const checkbox = item.querySelector('.scheme-checkbox');
-                if (checkbox) {
-                    checkbox.checked = false;
-                }
+        // Auto-check or uncheck schemes
+        if (selectedDepts.includes(schemeDept)) {
+            scb.checked = true;
+        } else {
+            scb.checked = false;
+        }
+    });
+
+    updateSchemeOptionsVisibility();
+}
+
+function updateSchemeSelection() {
+    // When a scheme is manually checked, ensure its department is checked too
+    document.querySelectorAll('.scheme-checkbox').forEach(scb => {
+        scb.addEventListener('change', () => {
+            const deptId = scb.dataset.department;
+            if (scb.checked) {
+                const deptCheckbox = document.querySelector(`#dept_${deptId}`);
+                if (deptCheckbox && !deptCheckbox.checked) deptCheckbox.checked = true;
             }
         });
-    }
+    });
+}
+
+function updateSchemeOptionsVisibility() {
+    const deptAll = document.getElementById('dept_all');
+    const selectedDepts = Array.from(document.querySelectorAll('.department-checkbox:checked:not(:disabled)'))
+                              .map(cb => cb.value);
+
+    document.querySelectorAll('#schemeOptions .form-check[data-department-id]').forEach(item => {
+        const deptId = item.getAttribute('data-department-id');
+        const visible = deptAll.checked || selectedDepts.length === 0 || selectedDepts.includes(deptId);
+        item.style.display = visible ? 'block' : 'none';
+
+        if (!visible) {
+            const checkbox = item.querySelector('.scheme-checkbox');
+            if (checkbox) checkbox.checked = false;
+        }
+    });
+}
 </script>
 {% endblock %}
 
