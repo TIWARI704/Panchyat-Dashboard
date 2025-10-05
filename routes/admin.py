@@ -395,7 +395,10 @@ def add_record():
             }
 
             # Use PanchayatRecord model to create record
-            result = PanchayatRecord.create_record(mongo, record_data, session.get('username'))
+            result = PanchayatRecord.create_record(
+                mongo,
+                record_data,
+                created_by= session.get('username'))
             
             if result['success']:
                 flash('Record added successfully!', 'success')
@@ -547,7 +550,10 @@ def export_excel():
 def delete_record(record_id):
     try:
         # Use PanchayatRecord model to delete record
-        success = PanchayatRecord.delete_record(mongo, record_id)
+        success = PanchayatRecord.delete_record(
+            mongo,
+            record_id,
+            deleted_by=session.get('username'))
         
         if success:
             return jsonify({'success': True, 'message': 'Record deleted successfully!'})
@@ -613,7 +619,12 @@ def update_record_api(record_id):
             final_update_data['custom_data'] = custom_data
         
         # Update record in database
-        success = PanchayatRecord.update_record(mongo, record_id, final_update_data)
+        success = PanchayatRecord.update_record(
+            mongo,
+            record_id,
+            final_update_data,
+            updated_by=session.get('username')
+        )
         
         if success:
             return jsonify({'success': True, 'message': 'Record updated successfully!'})
@@ -714,7 +725,12 @@ def edit_user(user_id):
                 'updated_at': datetime.utcnow()
             }
             
-            success = User.update_user(mongo, user_id, update_data)
+            success = User.update_user(
+                mongo,
+                user_id,
+                update_data,
+                updated_by=session.get('username')
+            )
             
             if success:
                 flash('User updated successfully!', 'success')
@@ -781,7 +797,12 @@ def toggle_user_status(user_id):
             'updated_at': datetime.utcnow()
         }
         
-        success = User.update_user(mongo, user_id, update_data)
+        success = User.update_user(
+            mongo,
+            user_id,
+            update_data,
+            updated_by=session.get('username')
+        )
         
         if success:
             status_text = 'activated' if new_status else 'deactivated'
@@ -967,7 +988,7 @@ def create_user():
             'scheme_access': scheme_access
         }
 
-        result = User.create_user(mongo, user_data)
+        result = User.create_user(mongo, user_data, created_by=session.get('username'))
 
         if result['success']:
             flash(f'User "{username}" created successfully with role "{role}".', 'success')
@@ -1061,7 +1082,7 @@ def create_department():
             flash('Department name is required', 'error')
             return redirect(url_for('admin.manage_departments'))
         
-        result = Department.create_department(mongo, department_data)
+        result = Department.create_department(mongo, department_data,username=session.get('username'))
         
         if result['success']:
             flash('Department created successfully!', 'success')
@@ -1091,7 +1112,7 @@ def edit_department(department_id):
                 flash('Department name is required', 'error')
                 return redirect(url_for('admin.manage_departments'))
             
-            result = Department.update_department(mongo, department_id, update_data)
+            result = Department.update_department(mongo, department_id, update_data,username=session.get('username'))
             
             if result['success']:
                 flash('Department updated successfully!', 'success')
@@ -1122,7 +1143,7 @@ def edit_department(department_id):
 def delete_department(department_id):
     """Delete department"""
     try:
-        result = Department.delete_department(mongo, department_id)
+        result = Department.delete_department(mongo, department_id,username=session.get('username'))
         
         if result['success']:
             flash('Department deleted successfully!', 'success')
@@ -1214,7 +1235,7 @@ def create_scheme():
             flash('Scheme name and department are required', 'error')
             return redirect(url_for('admin.manage_schemes'))
         
-        result = Scheme.create_scheme(mongo, scheme_data)
+        result = Scheme.create_scheme(mongo, scheme_data,username=session.get('username'))
         
         if result['success']:
             flash('Scheme created successfully!', 'success')
@@ -1245,7 +1266,7 @@ def edit_scheme(scheme_id):
                 flash('Scheme name is required', 'error')
                 return redirect(url_for('admin.manage_schemes'))
             
-            result = Scheme.update_scheme(mongo, scheme_id, update_data)
+            result = Scheme.update_scheme(mongo, scheme_id, update_data,username=session.get('username'))
             
             if result['success']:
                 flash('Scheme updated successfully!', 'success')
@@ -1280,7 +1301,7 @@ def edit_scheme(scheme_id):
 def delete_scheme(scheme_id):
     """Delete scheme"""
     try:
-        result = Scheme.delete_scheme(mongo, scheme_id)
+        result = Scheme.delete_scheme(mongo, scheme_id,username=session.get('username'))
         
         if result['success']:
             flash('Scheme deleted successfully!', 'success')

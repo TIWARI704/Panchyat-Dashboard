@@ -7,6 +7,7 @@ It handles department management and organization structure.
 
 from datetime import datetime
 from bson import ObjectId
+from models.audit_log import AuditLog
 
 class Department:
     """
@@ -31,7 +32,7 @@ class Department:
         }
 
     @staticmethod
-    def create_department(mongo, department_data):
+    def create_department(mongo, department_data, username=None):
         """Create a new department"""
         try:
             # Check if department name already exists
@@ -52,6 +53,16 @@ class Department:
             result = mongo.db.departments.insert_one(department.to_dict())
             
             if result.inserted_id:
+                # Log the creation
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=username or 'System',
+                    model_type='department',
+                    model_id=str(result.inserted_id),
+                    action='created',
+                    changed_fields={'name': department_data.get('name'), 'description': department_data.get('description')}
+                )
+                
                 return {'success': True, 'message': 'Department created successfully', 'department_id': str(result.inserted_id)}
             else:
                 return {'success': False, 'message': 'Failed to create department'}
@@ -85,9 +96,14 @@ class Department:
             return None
 
     @staticmethod
-    def update_department(mongo, department_id, update_data):
+    def update_department(mongo, department_id, update_data, username=None):
         """Update department"""
         try:
+            # Get old data for audit log
+            old_department = mongo.db.departments.find_one({'_id': ObjectId(department_id)})
+            if not old_department:
+                return {'success': False, 'message': 'Department not found'}
+            
             # Check if name is being updated and if it already exists
             if 'name' in update_data:
                 existing_department = mongo.db.departments.find_one({
@@ -97,6 +113,15 @@ class Department:
                 if existing_department:
                     return {'success': False, 'message': 'Department name already exists'}
             
+            # Track changed fields
+            changed_fields = {}
+            for key, new_value in update_data.items():
+                if key in old_department and old_department[key] != new_value:
+                    changed_fields[key] = {
+                        'old': old_department[key],
+                        'new': new_value
+                    }
+            
             update_data['updated_at'] = datetime.utcnow()
             result = mongo.db.departments.update_one(
                 {'_id': ObjectId(department_id)},
@@ -104,6 +129,16 @@ class Department:
             )
             
             if result.modified_count > 0:
+                # Log the update
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=username or 'System',
+                    model_type='department',
+                    model_id=str(department_id),
+                    action='updated',
+                    changed_fields=changed_fields
+                )
+                
                 return {'success': True, 'message': 'Department updated successfully'}
             else:
                 return {'success': False, 'message': 'No changes made to department'}
@@ -112,9 +147,14 @@ class Department:
             return {'success': False, 'message': f'Error updating department: {str(e)}'}
 
     @staticmethod
-    def delete_department(mongo, department_id):
+    def delete_department(mongo, department_id, username=None):
         """Soft delete department"""
         try:
+            # Get department data before deletion
+            department = mongo.db.departments.find_one({'_id': ObjectId(department_id)})
+            if not department:
+                return {'success': False, 'message': 'Department not found'}
+            
             # Check if department has schemes
             schemes_count = mongo.db.schemes.count_documents({'department_id': ObjectId(department_id), 'is_active': True})
             if schemes_count > 0:
@@ -126,6 +166,16 @@ class Department:
             )
             
             if result.modified_count > 0:
+                # Log the deletion
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=username or 'System',
+                    model_type='department',
+                    model_id=str(department_id),
+                    action='deleted',
+                    changed_fields={'department_name': department.get('name'), 'is_active': {'old': True, 'new': False}}
+                )
+                
                 return {'success': True, 'message': 'Department deleted successfully'}
             else:
                 return {'success': False, 'message': 'Department not found or could not be deleted'}
