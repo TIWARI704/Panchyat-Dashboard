@@ -7,6 +7,7 @@ It handles all panchayat record operations including CRUD, statistics, and data 
 
 from datetime import datetime
 from bson import ObjectId
+from models.audit_log import AuditLog
 
 class PanchayatRecord:
     """
@@ -109,6 +110,20 @@ class PanchayatRecord:
             result = mongo.db.panchayat_records.insert_one(record_doc)
             
             if result.inserted_id:
+                # Log the creation
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=created_by or 'System',
+                    model_type='panchayat_record',
+                    model_id=str(result.inserted_id),
+                    action='created',
+                    changed_fields={
+                        'beneficiary_name': record_data.get('beneficiary_name'),
+                        'registration_number': record_data.get('registration_number'),
+                        'panchayat_name': record_data.get('panchayat_name')
+                    }
+                )
+                
                 return {'success': True, 'message': 'Record created successfully', 'record_id': str(result.inserted_id)}
             else:
                 return {'success': False, 'message': 'Failed to create record'}
@@ -339,26 +354,72 @@ class PanchayatRecord:
             return None
 
     @staticmethod
-    def update_record(mongo, record_id, update_data):
+    def update_record(mongo, record_id, update_data, updated_by=None):
         """Update record"""
         try:
+            # Get old data for audit log
+            old_record = mongo.db.panchayat_records.find_one({'_id': ObjectId(record_id)})
+            if not old_record:
+                return False
+            
+            # Track changed fields
+            changed_fields = {}
+            for key, new_value in update_data.items():
+                if key in old_record and old_record[key] != new_value:
+                    changed_fields[key] = {
+                        'old': old_record[key],
+                        'new': new_value
+                    }
+            
             update_data['updated_at'] = datetime.utcnow()
             result = mongo.db.panchayat_records.update_one(
                 {'_id': ObjectId(record_id)},
                 {'$set': update_data}
             )
+            
+            if result.modified_count > 0 and changed_fields:
+                # Log the update
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=updated_by or 'System',
+                    model_type='panchayat_record',
+                    model_id=str(record_id),
+                    action='updated',
+                    changed_fields=changed_fields
+                )
+            
             return result.modified_count > 0
         except Exception as e:
             return False
 
     @staticmethod
-    def delete_record(mongo, record_id):
+    def delete_record(mongo, record_id, deleted_by=None):
         """Soft delete record"""
         try:
+            # Get record data before deletion
+            record = mongo.db.panchayat_records.find_one({'_id': ObjectId(record_id)})
+            if not record:
+                return False
+            
             result = mongo.db.panchayat_records.update_one(
                 {'_id': ObjectId(record_id)},
                 {'$set': {'is_active': False, 'updated_at': datetime.utcnow()}}
             )
+            
+            if result.modified_count > 0:
+                # Log the deletion
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=deleted_by or 'System',
+                    model_type='panchayat_record',
+                    model_id=str(record_id),
+                    action='deleted',
+                    changed_fields={
+                        'beneficiary_name': record.get('beneficiary_name'),
+                        'is_active': {'old': True, 'new': False}
+                    }
+                )
+            
             return result.modified_count > 0
         except Exception as e:
             return False

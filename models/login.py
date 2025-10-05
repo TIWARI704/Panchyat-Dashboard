@@ -8,6 +8,7 @@ It handles user authentication, role management, and access control.
 from datetime import datetime
 from werkzeug.security import check_password_hash, generate_password_hash
 from bson.objectid import ObjectId
+from models.audit_log import AuditLog
 
 class User:
     """
@@ -47,7 +48,7 @@ class User:
         }
 
     @staticmethod
-    def create_user(mongo, user_data):
+    def create_user(mongo, user_data, created_by_username=None):
         """Create a new user in the database"""
         try:
             # Extract data from dictionary
@@ -84,6 +85,20 @@ class User:
             result = mongo.db.users.insert_one(user_dict)
             
             if result.inserted_id:
+                # Log the creation
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=created_by_username or 'System',
+                    model_type='user',
+                    model_id=str(result.inserted_id),
+                    action='created',
+                    changed_fields={
+                        'username': username,
+                        'role': role,
+                        'email': email
+                    }
+                )
+                
                 return {'success': True, 'message': 'User created successfully', 'user_id': str(result.inserted_id)}
             else:
                 return {'success': False, 'message': 'Failed to create user'}
@@ -122,14 +137,43 @@ class User:
             return None
 
     @staticmethod
-    def update_user(mongo, user_id, update_data):
+    def update_user(mongo, user_id, update_data, updated_by_username=None):
         """Update user information"""
         try:
+            # Get old data for audit log
+            old_user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
+            if not old_user:
+                return False
+            
+            # Track changed fields
+            changed_fields = {}
+            for key, new_value in update_data.items():
+                if key == 'password':
+                    # Don't log password changes in detail
+                    changed_fields['password'] = 'changed'
+                elif key in old_user and old_user[key] != new_value:
+                    changed_fields[key] = {
+                        'old': old_user[key] if key != 'password' else '***',
+                        'new': new_value if key != 'password' else '***'
+                    }
+            
             update_data['updated_at'] = datetime.utcnow()
             result = mongo.db.users.update_one(
                 {'_id': ObjectId(user_id)},
                 {'$set': update_data}
             )
+            
+            if result.modified_count > 0 and changed_fields:
+                # Log the update
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=updated_by_username or 'System',
+                    model_type='user',
+                    model_id=str(user_id),
+                    action='updated',
+                    changed_fields=changed_fields
+                )
+            
             return result.modified_count > 0
         except Exception as e:
             return False

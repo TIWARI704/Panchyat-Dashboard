@@ -7,6 +7,7 @@ It handles scheme management with dynamic attribute definitions.
 
 from datetime import datetime
 from bson import ObjectId
+from models.audit_log import AuditLog
 
 class Scheme:
     """
@@ -35,7 +36,7 @@ class Scheme:
         }
 
     @staticmethod
-    def create_scheme(mongo, scheme_data):
+    def create_scheme(mongo, scheme_data, username=None):
         """Create a new scheme"""
         try:
             # Check if scheme name already exists within the same department
@@ -64,6 +65,20 @@ class Scheme:
             result = mongo.db.schemes.insert_one(scheme.to_dict())
             
             if result.inserted_id:
+                # Log the creation
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=username or 'System',
+                    model_type='scheme',
+                    model_id=str(result.inserted_id),
+                    action='created',
+                    changed_fields={
+                        'name': scheme_data.get('name'),
+                        'department': department.get('name'),
+                        'attributes_count': len(scheme_data.get('attributes', []))
+                    }
+                )
+                
                 return {'success': True, 'message': 'Scheme created successfully', 'scheme_id': str(result.inserted_id)}
             else:
                 return {'success': False, 'message': 'Failed to create scheme'}
@@ -168,20 +183,38 @@ class Scheme:
             return {'success': False, 'message': f'Error fetching schemes by IDs: {str(e)}'}
 
     @staticmethod
-    def update_scheme(mongo, scheme_id, update_data):
+    def update_scheme(mongo, scheme_id, update_data, username=None):
         """Update scheme"""
         try:
+            # Get old data for audit log
+            old_scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
+            if not old_scheme:
+                return {'success': False, 'message': 'Scheme not found'}
+            
             # Check if name is being updated and if it already exists in the same department
             if 'name' in update_data:
-                scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
-                if scheme:
-                    existing_scheme = mongo.db.schemes.find_one({
-                        'name': update_data['name'],
-                        'department_id': scheme['department_id'],
-                        '_id': {'$ne': ObjectId(scheme_id)}
-                    })
-                    if existing_scheme:
-                        return {'success': False, 'message': 'Scheme name already exists in this department'}
+                existing_scheme = mongo.db.schemes.find_one({
+                    'name': update_data['name'],
+                    'department_id': old_scheme['department_id'],
+                    '_id': {'$ne': ObjectId(scheme_id)}
+                })
+                if existing_scheme:
+                    return {'success': False, 'message': 'Scheme name already exists in this department'}
+            
+            # Track changed fields
+            changed_fields = {}
+            for key, new_value in update_data.items():
+                if key in old_scheme and old_scheme[key] != new_value:
+                    if key == 'attributes':
+                        changed_fields[key] = {
+                            'old_count': len(old_scheme[key]),
+                            'new_count': len(new_value)
+                        }
+                    else:
+                        changed_fields[key] = {
+                            'old': old_scheme[key],
+                            'new': new_value
+                        }
             
             # Check if attributes are being updated and if there are existing records
             if 'attributes' in update_data:
@@ -192,7 +225,6 @@ class Scheme:
                 
                 if existing_records_count > 0:
                     # This is a warning case - attributes are being updated with existing data
-                    # We'll need to handle this carefully in the frontend
                     pass
             
             update_data['updated_at'] = datetime.utcnow()
@@ -202,6 +234,16 @@ class Scheme:
             )
             
             if result.modified_count > 0:
+                # Log the update
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=username or 'System',
+                    model_type='scheme',
+                    model_id=str(scheme_id),
+                    action='updated',
+                    changed_fields=changed_fields
+                )
+                
                 return {'success': True, 'message': 'Scheme updated successfully'}
             else:
                 return {'success': False, 'message': 'No changes made to scheme'}
@@ -210,9 +252,14 @@ class Scheme:
             return {'success': False, 'message': f'Error updating scheme: {str(e)}'}
 
     @staticmethod
-    def delete_scheme(mongo, scheme_id):
+    def delete_scheme(mongo, scheme_id, username=None):
         """Soft delete scheme"""
         try:
+            # Get scheme data before deletion
+            scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
+            if not scheme:
+                return {'success': False, 'message': 'Scheme not found'}
+            
             # Check if scheme has records
             records_count = mongo.db.panchayat_records.count_documents({
                 'scheme_id': ObjectId(scheme_id),
@@ -228,6 +275,16 @@ class Scheme:
             )
             
             if result.modified_count > 0:
+                # Log the deletion
+                AuditLog.log_action(
+                    mongo=mongo,
+                    username=username or 'System',
+                    model_type='scheme',
+                    model_id=str(scheme_id),
+                    action='deleted',
+                    changed_fields={'scheme_name': scheme.get('name'), 'is_active': {'old': True, 'new': False}}
+                )
+                
                 return {'success': True, 'message': 'Scheme deleted successfully'}
             else:
                 return {'success': False, 'message': 'Scheme not found or could not be deleted'}

@@ -167,8 +167,12 @@ def add_record():
                 'custom_data': custom_data
             }
 
-            # Use PanchayatRecord model to create record
-            result = PanchayatRecord.create_record(mongo, record_data, session.get('username'))
+            # Use PanchayatRecord model to create record with username
+            result = PanchayatRecord.create_record(
+                mongo, 
+                record_data, 
+                created_by=session.get('username')
+            )
             
             if result['success']:
                 flash('Record added successfully!', 'success')
