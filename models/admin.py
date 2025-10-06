@@ -639,3 +639,53 @@ class PanchayatRecord:
             
         except Exception as e:
             return []
+
+    @staticmethod
+    def get_records_by_user(mongo, user_id):
+        """Get all records created by a specific user"""
+        try:
+            # Get user info to check access
+            user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
+            if not user:
+                return {'success': False, 'message': 'User not found'}
+            
+            # Build query - get records created by this user
+            query = {
+                'created_by': user.get('username'),
+                'is_active': True
+            }
+            
+            # Get records with department and scheme names
+            pipeline = [
+                {'$match': query},
+                {'$lookup': {
+                    'from': 'departments',
+                    'localField': 'department_id',
+                    'foreignField': '_id',
+                    'as': 'department'
+                }},
+                {'$lookup': {
+                    'from': 'schemes',
+                    'localField': 'scheme_id',
+                    'foreignField': '_id',
+                    'as': 'scheme'
+                }},
+                {'$addFields': {
+                    'department_name': {'$arrayElemAt': ['$department.name', 0]},
+                    'scheme_name': {'$arrayElemAt': ['$scheme.name', 0]}
+                }},
+                {'$sort': {'created_at': -1}}
+            ]
+            
+            records = list(mongo.db.panchayat_records.aggregate(pipeline))
+            
+            return {
+                'success': True,
+                'records': records,
+                'total': len(records)
+            }
+        except Exception as e:
+            print(f"ERROR in get_records_by_user: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'success': False, 'message': f'Error fetching records: {str(e)}'}

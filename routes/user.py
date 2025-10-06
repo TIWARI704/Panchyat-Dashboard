@@ -598,3 +598,29 @@ def get_user_dashboard_data():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)})
+    
+@user_bp.route('/api/user-records')
+@login_required
+def get_user_records():
+    """API endpoint to fetch user's own records"""
+    try:
+        user_id = session.get('user_id')
+        
+        # Get records created by this user
+        result = PanchayatRecord.get_records_by_user(mongo, user_id)
+        
+        if result['success']:
+            # Convert ObjectId to string for JSON serialization
+            for record in result['records']:
+                record['_id'] = {'$oid': str(record['_id'])}
+                if 'department_id' in record:
+                    record['department_id'] = {'$oid': str(record['department_id'])}
+                if 'scheme_id' in record:
+                    record['scheme_id'] = {'$oid': str(record['scheme_id'])}
+                    
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
