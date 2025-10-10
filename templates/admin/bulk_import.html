@@ -1,0 +1,405 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Bulk Import - Panchayat Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Include sidebar here -->
+        <div class="col-md-10 offset-md-2">
+            <div class="main-content p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-upload"></i> Bulk Import Records</h2>
+                    <a href="{{ url_for('bulk_import.download_template') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-download"></i> Download Template
+                    </a>
+                </div>
+
+                <!-- Instructions Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle"></i> Instructions</h5>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li>Download the template file by clicking "Download Template" button</li>
+                            <li>Fill in your data following the template format</li>
+                            <li>Required fields: <strong>panchayat_name</strong>, <strong>beneficiary_name</strong></li>
+                            <li>Supported formats: Excel (.xlsx, .xls) and CSV files</li>
+                            <li>Upload your completed file below</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cloud-upload-alt"></i> Upload File</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Upload Area -->
+                        <div class="upload-area" id="uploadArea">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <h4>Drag and drop your file here</h4>
+                            <p class="text-muted">or click to browse files</p>
+                            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display: none;">
+                        </div>
+
+                        <!-- File Info -->
+                        <div class="file-info" id="fileInfo" style="display: none;">
+                            <h6><i class="fas fa-file"></i> Selected File</h6>
+                            <p class="mb-2"><strong>Name:</strong> <span id="fileName"></span></p>
+                            <p class="mb-2"><strong>Size:</strong> <span id="fileSize"></span></p>
+                            <p class="mb-0"><strong>Type:</strong> <span id="fileType"></span></p>
+                        </div>
+
+                        <!-- Options -->
+                        <div class="mt-3" id="importOptions" style="display: none;">
+                            <h6>Import Options</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="skipDuplicates">
+                                <label class="form-check-label" for="skipDuplicates">
+                                    Skip duplicate records (based on registration number)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="updateDuplicates">
+                                <label class="form-check-label" for="updateDuplicates">
+                                    Update existing records if duplicate found
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="mt-4" id="actionButtons" style="display: none;">
+                            <button type="button" class="btn btn-primary me-2" id="validateBtn">
+                                <i class="fas fa-check-circle"></i> Validate File
+                            </button>
+                            <button type="button" class="btn btn-success me-2" id="importBtn" disabled>
+                                <i class="fas fa-upload"></i> Import Records
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="clearBtn">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        <div class="progress-container mt-3">
+                            <div class="progress">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-center mt-2" id="progressText"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Validation Results -->
+                <div class="card mt-4" id="validationCard" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-clipboard-check"></i> Validation Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="validation-results" id="validationResults"></div>
+                    </div>
+                </div>
+
+                <!-- Import Results -->
+                <div class="card mt-4" id="resultsCard" style="display: none;">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Import Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="importResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+        let selectedFile = null;
+
+        // Upload area functionality
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const actionButtons = document.getElementById('actionButtons');
+        const importOptions = document.getElementById('importOptions');
+
+        // File selection handlers
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                selectedFile = files[0];
+                displayFileInfo();
+            }
+        }
+
+        function handleFileSelect(e) {
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                displayFileInfo();
+            }
+        }
+
+        function displayFileInfo() {
+            document.getElementById('fileName').textContent = selectedFile.name;
+            document.getElementById('fileSize').textContent = formatFileSize(selectedFile.size);
+            document.getElementById('fileType').textContent = selectedFile.type || 'Unknown';
+            
+            fileInfo.style.display = 'block';
+            actionButtons.style.display = 'block';
+            importOptions.style.display = 'block';
+            
+            // Reset validation and results
+            document.getElementById('validationCard').style.display = 'none';
+            document.getElementById('resultsCard').style.display = 'none';
+            document.getElementById('importBtn').disabled = true;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Validate file
+        document.getElementById('validateBtn').addEventListener('click', validateFile);
+
+        async function validateFile() {
+            if (!selectedFile) {
+                alert('Please select a file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                showProgress('Validating file...', 50);
+                
+                // Fixed API endpoint URL
+                const response = await fetch("{{ url_for('bulk_import.validate_import_file') }}", {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                hideProgress();
+
+                if (result.success) {
+                    displayValidationResults(result);
+                    document.getElementById('importBtn').disabled = false;
+                } else {
+                    showAlert('error', result.message);
+                }
+            } catch (error) {
+                hideProgress();
+                showAlert('error', 'Error validating file: ' + error.message);
+            }
+        }
+
+        // Import records
+        document.getElementById('importBtn').addEventListener('click', importRecords);
+
+        async function importRecords() {
+            if (!selectedFile) {
+                alert('Please select a file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('skip_duplicates', document.getElementById('skipDuplicates').checked);
+            formData.append('update_duplicates', document.getElementById('updateDuplicates').checked);
+
+            try {
+                showProgress('Importing records...', 0);
+                
+                // Fixed API endpoint URL
+                const response = await fetch("{{ url_for('bulk_import.upload_bulk_import') }}", {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                hideProgress();
+
+                if (result.success) {
+                    displayImportResults(result);
+                    showAlert('success', result.message);
+                } else {
+                    showAlert('error', result.message);
+                }
+            } catch (error) {
+                hideProgress();
+                showAlert('error', 'Error importing records: ' + error.message);
+            }
+        }
+
+        // Clear selection
+        document.getElementById('clearBtn').addEventListener('click', clearSelection);
+
+        function clearSelection() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            actionButtons.style.display = 'none';
+            importOptions.style.display = 'none';
+            document.getElementById('validationCard').style.display = 'none';
+            document.getElementById('resultsCard').style.display = 'none';
+        }
+
+        function displayValidationResults(result) {
+            const validationCard = document.getElementById('validationCard');
+            const validationResults = document.getElementById('validationResults');
+            
+            let html = `
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> File Summary</h6>
+                    <p><strong>Total Rows:</strong> ${result.total_rows}</p>
+                    <p><strong>Columns Found:</strong> ${result.columns.join(', ')}</p>
+                </div>
+            `;
+
+            if (result.sample_errors.length > 0) {
+                html += `
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Errors Found</h6>
+                        <ul>
+                            ${result.sample_errors.map(error => `<li>${error}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            if (result.sample_warnings.length > 0) {
+                html += `
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-circle"></i> Warnings</h6>
+                        <ul>
+                            ${result.sample_warnings.map(warning => `<li>${warning}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            if (result.sample_errors.length === 0) {
+                html += `
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-check-circle"></i> Validation Passed</h6>
+                        <p>File structure and data format are valid. Ready to import!</p>
+                    </div>
+                `;
+            }
+
+            validationResults.innerHTML = html;
+            validationCard.style.display = 'block';
+        }
+
+        function displayImportResults(result) {
+            const resultsCard = document.getElementById('resultsCard');
+            const importResults = document.getElementById('importResults');
+            
+            let html = `
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h2 class="text-success">${result.successful_imports}</h2>
+                                <p class="text-muted">Successful</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h2 class="text-danger">${result.failed_imports}</h2>
+                                <p class="text-muted">Failed</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h2 class="text-primary">${result.total_rows}</h2>
+                                <p class="text-muted">Total Rows</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h2 class="text-warning">${result.warnings ? result.warnings.length : 0}</h2>
+                                <p class="text-muted">Warnings</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (result.errors && result.errors.length > 0) {
+                html += `
+                    <div class="alert alert-danger mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Errors</h6>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            <ul>
+                                ${result.errors.slice(0, 10).map(error => `<li>${error}</li>`).join('')}
+                                ${result.errors.length > 10 ? `<li><em>... and ${result.errors.length - 10} more errors</em></li>` : ''}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+
+            importResults.innerHTML = html;
+            resultsCard.style.display = 'block';
+        }
+
+        function showProgress(text, percent) {
+            const progressContainer = document.querySelector('.progress-container');
+            const progressBar = document.querySelector('.progress-bar');
+            const progressText = document.getElementById('progressText');
+            
+            progressContainer.style.display = 'block';
+            progressBar.style.width = percent + '%';
+            progressText.textContent = text;
+        }
+
+        function hideProgress() {
+            document.querySelector('.progress-container').style.display = 'none';
+        }
+
+        function showAlert(type, message) {
+            // You can implement your preferred alert system here
+            if (type === 'success') {
+                alert('Success: ' + message);
+            } else {
+                alert('Error: ' + message);
+            }
+        }
+    </script>
+{% endblock %}

@@ -1,5 +1,5 @@
 import os
-from flask import Flask as flask, render_template, redirect, url_for
+from flask import Flask as flask, redirect, url_for
 from flask_pymongo import PyMongo
 from config import config
 
@@ -17,10 +17,13 @@ mongo = PyMongo(app)
 from routes.login import login_bp, intialize
 from routes.admin import admin_bp, intialize_admin
 from routes.user import user_bp, intialize_user
+from routes.bulk_import import bulk_import_bp,intialize_bulk_import
+
 
 intialize(mongo)
 intialize_admin(mongo)
 intialize_user(mongo)
+intialize_bulk_import(mongo)
 
 # Initialize sample data if it doesn't exist
 try:
@@ -39,6 +42,7 @@ except Exception as e:
 app.register_blueprint(login_bp, url_prefix="/auth")
 app.register_blueprint(admin_bp, url_prefix="/admin")
 app.register_blueprint(user_bp, url_prefix="/user")
+app.register_blueprint(bulk_import_bp, url_prefix="/data")
 
 @app.route("/")
 def home():
