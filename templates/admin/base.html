@@ -27,6 +27,9 @@
             <a class="nav-link {% if request.endpoint == 'admin.add_record' %}active{% endif %}" href="{{ url_for('admin.add_record') }}">
                 <i class="fas fa-plus me-2"></i> Add Record
             </a>
+            <a class="nav-link {% if request.endpoint == 'admin.bulk_import' %}active{% endif %}" href="{{ url_for('admin.bulk_import') }}">
+                <i class="fas fa-file-upload me-2"></i> Bulk Import
+            </a>
             <a class="nav-link {% if request.endpoint == 'admin.view_records' %}active{% endif %}" href="{{ url_for('admin.view_records') }}">
                 <i class="fas fa-table me-2"></i> View Records
             </a>

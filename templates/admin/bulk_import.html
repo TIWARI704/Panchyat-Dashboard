@@ -1,0 +1,642 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Bulk Import - Panchayat Management{% endblock %}
+
+{% block content %}
+                <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Bulk Import</h2>
+    <a href="{{ url_for('admin.import_history') }}" class="btn btn-outline-primary">
+        <i class="fas fa-history me-2"></i>Import History
+    </a>
+                </div>
+
+<!-- Import Instructions -->
+                <div class="card mb-4">
+                    <div class="card-header">
+        <h5 class="mb-0">Import Instructions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                <h6>Steps to Import:</h6>
+                <ol>
+                    <li>Select the scheme for which you want to import records</li>
+                    <li>Download the template file for the selected scheme</li>
+                    <li>Fill the template with your data</li>
+                    <li>Upload the completed file</li>
+                    <li>Monitor progress in Import History</li>
+                </ol>
+                            </div>
+                            <div class="col-md-6">
+                <h6>Important Notes:</h6>
+                <ul>
+                    <li>Maximum file size: 10MB</li>
+                    <li>Supported formats: Excel (.xlsx, .xls)</li>
+                    <li>Do not modify column headers in the template</li>
+                    <li>Import will run in background - check history for progress</li>
+                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+<!-- Scheme Selection -->
+<div class="card mb-4" id="schemeSelectionCard">
+                    <div class="card-header">
+        <h5 class="mb-0">Step 1: Select Scheme</h5>
+                    </div>
+                    <div class="card-body">
+        <div class="row">
+            <div class="col-12">
+                <div class="mb-3">
+                    <label for="schemeSelect" class="form-label">Select Scheme *</label>
+                    <select class="form-select" id="schemeSelect" required>
+                        <option value="">Select a scheme</option>
+                        <!-- Options will be loaded dynamically -->
+                    </select>
+                </div>
+                    </div>
+                        </div>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Please select a scheme to proceed with the import process.
+                            </div>
+                            </div>
+                        </div>
+
+<!-- Import Options (Hidden initially) -->
+<div class="card mb-4" id="importOptionsCard" style="display: none;">
+    <div class="card-header">
+        <h5 class="mb-0">Step 2: Import Options</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-success" id="downloadExcelTemplateBtn">
+                        <i class="fas fa-file-excel me-2"></i>Download Excel Template
+                            </button>
+                    <small class="text-muted">Download Excel (.xlsx) template</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-info" id="downloadCsvTemplateBtn">
+                        <i class="fas fa-file-csv me-2"></i>Download CSV Template
+                            </button>
+                    <small class="text-muted">Download CSV (.csv) template</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary" id="uploadFileBtn">
+                        <i class="fas fa-upload me-2"></i>Upload File
+                            </button>
+                    <small class="text-muted">Upload your completed file</small>
+                        </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+<!-- File Upload Form (Hidden initially) -->
+<div class="card mb-4" id="fileUploadCard" style="display: none;">
+                    <div class="card-header">
+        <h5 class="mb-0">Step 3: Upload File</h5>
+                    </div>
+                    <div class="card-body">
+        <form id="bulkImportForm" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="importFile" class="form-label">Select File *</label>
+                <input type="file" class="form-control" id="importFile" name="file" accept=".xlsx,.xls,.csv" required>
+                <div class="form-text">Supported formats: Excel (.xlsx, .xls) or CSV (.csv) - Maximum size: 10MB</div>
+                    </div>
+            
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="skipDuplicates" name="skip_duplicates" checked>
+                    <label class="form-check-label" for="skipDuplicates">
+                        Skip duplicate records
+                    </label>
+                </div>
+                <div class="form-text">If checked, records with duplicate data will be skipped instead of causing import failure</div>
+                </div>
+
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-info" id="validateFileBtn" disabled>
+                    <i class="fas fa-check-circle me-2"></i>Validate File
+                </button>
+                <button type="submit" class="btn btn-primary" id="startImportBtn" disabled>
+                    <i class="fas fa-play me-2"></i>Start Import
+                </button>
+                <button type="button" class="btn btn-secondary" id="cancelUploadBtn">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+            </div>
+            
+            <!-- Validation Results -->
+            <div id="validationResults" class="mt-3" style="display: none;">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>File Validation Results</h6>
+                    <div id="validationContent"></div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Import Progress (Hidden initially) -->
+<div class="card mb-4" id="importProgressCard" style="display: none;">
+                    <div class="card-header">
+        <h5 class="mb-0">Import Progress</h5>
+                    </div>
+                    <div class="card-body">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="sr-only">Processing...</span>
+                    </div>
+            <h6 id="importStatus">Preparing import...</h6>
+            <p class="text-muted" id="importMessage">Your file is being processed. You can monitor the progress in Import History.</p>
+            <div class="mt-3">
+                <a href="{{ url_for('admin.import_history') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-history me-2"></i>View Import History
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden file input for programmatic upload -->
+<input type="file" id="hiddenFileInput" style="display: none;" accept=".xlsx,.xls,.csv">
+
+<!-- Import Confirmation Modal -->
+<div class="modal fade" id="importConfirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Import Warning
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>⚠️ File validation failed!</strong><br>
+                    The following issues were found in your file:
+                </div>
+                <ul id="validationErrorList" class="list-group mb-3">
+                    <!-- Errors will be populated here -->
+                </ul>
+                <div class="alert alert-danger">
+                    <strong>Proceeding with import may result in:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Missing or incorrect data</li>
+                        <li>Import failures</li>
+                        <li>Data integrity issues</li>
+                    </ul>
+                </div>
+                <p class="mb-0"><strong>Are you sure you want to proceed with the import?</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-warning" id="confirmImportBtn">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Proceed with Import
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let selectedSchemeId = null;
+    let selectedDepartmentId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+        loadAvailableSchemes();
+        setupEventListeners();
+    });
+
+    function loadAvailableSchemes() {
+        fetch('/admin/api/schemes-for-user-creation')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const schemeSelect = document.getElementById('schemeSelect');
+                    schemeSelect.innerHTML = '<option value="">Select a scheme</option>';
+                    
+                    data.schemes.forEach(scheme => {
+                        const option = document.createElement('option');
+                        option.value = scheme.id;
+                        option.textContent = `${scheme.name} (${scheme.department_name})`;
+                        option.setAttribute('data-department-id', scheme.department_id);
+                        schemeSelect.appendChild(option);
+                    });
+                } else {
+                    showAlert('Error loading schemes: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading schemes:', error);
+                showAlert('Error loading schemes', 'danger');
+            });
+    }
+
+    function setupEventListeners() {
+        // Scheme selection
+        document.getElementById('schemeSelect').addEventListener('change', function() {
+            selectedSchemeId = this.value;
+            if (selectedSchemeId) {
+                // Get department ID from the selected option
+                const selectedOption = this.options[this.selectedIndex];
+                selectedDepartmentId = selectedOption.getAttribute('data-department-id');
+                showImportOptions();
+            } else {
+                hideImportOptions();
+            }
+        });
+
+        // Download Excel template
+        document.getElementById('downloadExcelTemplateBtn').addEventListener('click', function() {
+            if (selectedSchemeId) {
+                downloadTemplate(selectedSchemeId, 'excel');
+            } else {
+                showAlert('Please select a scheme first', 'warning');
+            }
+        });
+
+        // Download CSV template
+        document.getElementById('downloadCsvTemplateBtn').addEventListener('click', function() {
+            if (selectedSchemeId) {
+                downloadTemplate(selectedSchemeId, 'csv');
+            } else {
+                showAlert('Please select a scheme first', 'warning');
+            }
+        });
+
+        // Upload file button
+        document.getElementById('uploadFileBtn').addEventListener('click', function() {
+            document.getElementById('hiddenFileInput').click();
+        });
+
+        // Hidden file input change
+        document.getElementById('hiddenFileInput').addEventListener('change', function() {
+            if (this.files.length > 0) {
+                document.getElementById('importFile').files = this.files;
+                showFileUploadForm();
+                
+                // Trigger the file validation logic
+                const file = this.files[0];
+                const validateBtn = document.getElementById('validateFileBtn');
+                const startBtn = document.getElementById('startImportBtn');
+                
+                if (file) {
+                    validateBtn.disabled = false;
+                    startBtn.disabled = true; // Disable start until validation
+                    hideValidationResults();
+                } else {
+                    validateBtn.disabled = true;
+                    startBtn.disabled = true;
+                    hideValidationResults();
+                }
+            }
+        });
+
+        // Cancel upload
+        document.getElementById('cancelUploadBtn').addEventListener('click', function() {
+            hideFileUploadForm();
+        });
+
+        // File input change
+        document.getElementById('importFile').addEventListener('change', function() {
+            const file = this.files[0];
+            const validateBtn = document.getElementById('validateFileBtn');
+            const startBtn = document.getElementById('startImportBtn');
+            
+            if (file) {
+                validateBtn.disabled = false;
+                startBtn.disabled = true; // Disable start until validation
+                hideValidationResults();
+                } else {
+                validateBtn.disabled = true;
+                startBtn.disabled = true;
+                hideValidationResults();
+            }
+        });
+
+        // Validate file button
+        document.getElementById('validateFileBtn').addEventListener('click', function() {
+            validateFile();
+        });
+
+        // Form submission
+        document.getElementById('bulkImportForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            startImport();
+        });
+    }
+
+    function showImportOptions() {
+        document.getElementById('importOptionsCard').style.display = 'block';
+    }
+
+    function hideImportOptions() {
+        document.getElementById('importOptionsCard').style.display = 'none';
+        hideFileUploadForm();
+    }
+
+    function showFileUploadForm() {
+        document.getElementById('fileUploadCard').style.display = 'block';
+    }
+
+    function hideFileUploadForm() {
+        document.getElementById('fileUploadCard').style.display = 'none';
+        document.getElementById('bulkImportForm').reset();
+    }
+
+    function downloadTemplate(schemeId, format = 'excel') {
+        const link = document.createElement('a');
+        if (format === 'csv') {
+            link.href = `/admin/api/download-template-csv/${schemeId}`;
+            link.download = 'import_template.csv';
+        } else {
+            link.href = `/admin/api/download-template/${schemeId}`;
+            link.download = 'import_template.xlsx';
+        }
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function startImport() {
+        // Check if validation was performed and if it failed
+        if (window.currentValidation && !window.currentValidation.valid) {
+            // Show confirmation dialog for failed validation
+            showImportConfirmation();
+        } else {
+            // Direct import for successful validation or no validation
+            proceedWithImport();
+        }
+    }
+
+    function showImportConfirmation() {
+        const validation = window.currentValidation;
+        const errorList = document.getElementById('validationErrorList');
+        
+        // Clear previous errors
+        errorList.innerHTML = '';
+        
+        // Add each error to the list
+        validation.errors.forEach(error => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item list-group-item-danger';
+            li.innerHTML = `<i class="fas fa-times-circle me-2"></i>${error}`;
+            errorList.appendChild(li);
+        });
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('importConfirmationModal'));
+        modal.show();
+        
+        // Handle confirm button click
+        document.getElementById('confirmImportBtn').onclick = function() {
+            modal.hide();
+            proceedWithImport();
+        };
+    }
+
+    function proceedWithImport() {
+        const form = document.getElementById('bulkImportForm');
+        const formData = new FormData(form);
+        
+        // Add scheme and department info
+        formData.append('scheme_id', selectedSchemeId);
+        formData.append('department_id', selectedDepartmentId);
+
+        // Show progress
+        showImportProgress();
+
+        // Start import
+        fetch('/admin/api/start-bulk-import', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const message = window.currentValidation && !window.currentValidation.valid 
+                    ? 'Import started with warnings! You can monitor progress in Import History.'
+                    : 'Import started successfully! You can monitor progress in Import History.';
+                showAlert(message, 'success');
+                
+                // Reset form
+                hideFileUploadForm();
+                hideImportOptions();
+                document.getElementById('schemeSelect').value = '';
+                selectedSchemeId = null;
+                selectedDepartmentId = null;
+                window.currentValidation = null;
+            } else {
+                hideImportProgress();
+                showAlert('Error starting import: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error starting import:', error);
+            hideImportProgress();
+            showAlert('Error starting import', 'danger');
+        });
+    }
+
+    function showImportProgress() {
+        document.getElementById('importProgressCard').style.display = 'block';
+    }
+
+    function hideImportProgress() {
+        document.getElementById('importProgressCard').style.display = 'none';
+    }
+
+    function validateFile() {
+        const fileInput = document.getElementById('importFile');
+        const file = fileInput.files[0];
+        
+        if (!file) {
+            showAlert('Please select a file first', 'warning');
+            return;
+        }
+
+        // Basic file validation
+        const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedExtensions.includes(fileExtension)) {
+            showAlert('Invalid file format. Please select an Excel (.xlsx, .xls) or CSV (.csv) file.', 'danger');
+            return;
+        }
+
+        // Check file size (10MB limit)
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        if (file.size > maxSize) {
+            showAlert('File size exceeds 10MB limit. Please select a smaller file.', 'danger');
+            return;
+        }
+
+        // Validate file content against scheme
+        validateFileContent(file);
+    }
+
+    function validateFileContent(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('scheme_id', selectedSchemeId);
+
+        // Show loading state
+        const validateBtn = document.getElementById('validateFileBtn');
+        const originalText = validateBtn.innerHTML;
+        validateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Validating...';
+        validateBtn.disabled = true;
+
+        fetch('/admin/api/validate-import-file', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showValidationResults(file, data.validation);
+                // Store validation result for later use
+                window.currentValidation = data.validation;
+                
+                if (data.validation.valid) {
+                    // Validation successful - enable import button
+                    document.getElementById('startImportBtn').disabled = false;
+                } else {
+                    // Validation failed - enable import button but with warning
+                    document.getElementById('startImportBtn').disabled = false;
+                }
+            } else {
+                showAlert('Validation failed: ' + data.message, 'danger');
+                showValidationResults(file, { valid: false, errors: [data.message] });
+                window.currentValidation = { valid: false, errors: [data.message] };
+            }
+        })
+        .catch(error => {
+            console.error('Validation error:', error);
+            showAlert('Error validating file: ' + error.message, 'danger');
+        })
+        .finally(() => {
+            validateBtn.innerHTML = originalText;
+            validateBtn.disabled = false;
+        });
+    }
+
+    function showValidationResults(file, validation = null) {
+        const resultsDiv = document.getElementById('validationResults');
+        const contentDiv = document.getElementById('validationContent');
+        
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        
+        let statusHtml = '';
+        let readyForImport = false;
+        
+        if (validation) {
+            if (validation.valid) {
+                statusHtml = '<span class="text-success">✓ Valid</span>';
+                readyForImport = true;
+            } else {
+                statusHtml = '<span class="text-danger">✗ Invalid</span>';
+                readyForImport = false;
+            }
+        } else {
+            statusHtml = '<span class="text-warning">⚠ Not Validated</span>';
+            readyForImport = false;
+        }
+        
+        let validationDetails = '';
+        if (validation) {
+            if (validation.valid) {
+                let extraColumnsInfo = '';
+                if (validation.extra_columns && validation.extra_columns.length > 0) {
+                    extraColumnsInfo = `<br><span class="text-warning">⚠ Extra columns found: ${validation.extra_columns.join(', ')}</span>`;
+                }
+                
+                validationDetails = `
+                    <div class="mt-2">
+                        <strong>Validation Details:</strong><br>
+                        <span class="text-success">✓ All required columns present</span><br>
+                        <span class="text-success">✓ File structure matches scheme</span><br>
+                        <span class="text-success">✓ ${validation.record_count || 0} records found</span>
+                        ${extraColumnsInfo}
+                    </div>
+                `;
+            } else {
+                validationDetails = `
+                    <div class="mt-2">
+                        <strong>Validation Errors:</strong><br>
+                        ${validation.errors.map(error => `<span class="text-danger">✗ ${error}</span>`).join('<br>')}
+                        ${validation.extra_columns && validation.extra_columns.length > 0 ? 
+                            `<br><span class="text-warning">⚠ Extra columns found: ${validation.extra_columns.join(', ')}</span>` : ''}
+                    </div>
+                `;
+            }
+        }
+        
+        contentDiv.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>File Name:</strong> ${file.name}<br>
+                    <strong>File Size:</strong> ${fileSizeMB} MB<br>
+                    <strong>File Type:</strong> ${fileExtension.toUpperCase()}
+                </div>
+                <div class="col-md-6">
+                    <strong>Status:</strong> ${statusHtml}<br>
+                    <strong>Import Action:</strong> ${readyForImport ? 
+                        (validation && validation.valid ? 
+                            '<span class="text-success">✓ Direct Import</span>' : 
+                            '<span class="text-warning">⚠ Import with Confirmation</span>') : 
+                        '<span class="text-danger">✗ Not Ready</span>'}
+                </div>
+            </div>
+            ${validationDetails}
+        `;
+        
+        resultsDiv.style.display = 'block';
+    }
+
+    function hideValidationResults() {
+        document.getElementById('validationResults').style.display = 'none';
+    }
+
+    function showAlert(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+        `;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+        }
+    </script>
+{% endblock %}

@@ -1,277 +1,152 @@
 {% extends "user/base.html" %}
 
-{% block title %}View Records{% endblock %}
+{% block title %}View Records - Panchayat Management{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Add breadcrumb navigation -->
-    <nav aria-label="breadcrumb" class="mb-3">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('user.dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item active" aria-current="page">My Records</li>
-        </ol>
-    </nav>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>My Records</h2>
+    <a href="{{ url_for('user.add_record') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Add New Record
+    </a>
+</div>
 
-    <!-- Enhanced header with statistics -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3 mb-1 text-gray-800">My Records</h1>
-                    <p class="text-muted mb-0">View and search your submitted records</p>
-                </div>
-                <a href="{{ url_for('user.dashboard') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Dashboard
-                </a>
-            </div>
-        </div>
+<!-- Search Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Search Records</h5>
     </div>
-
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Records
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_records }}</div>
+    <div class="card-body">
+        <form id="searchForm" onsubmit="return false;">
+            <div class="row">
+                <!-- Search Box -->
+                <div class="col-md-8">
+                    <div class="mb-3">
+                        <label for="search" class="form-label">Search Records</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="search" name="search"
+                                placeholder="Search in all fields...">
+                            <button class="btn btn-outline-primary" type="button" id="searchBtn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="clearBtn">
+                                <i class="fas fa-times me-2"></i>Clear
+                            </button>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-file-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+
+                <!-- Download Button -->
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-success w-100" id="downloadBtn">
+                                <i class="fas fa-download me-2"></i>Download
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Active Records
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ records|selectattr('is_active')|list|length }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Schemes Used
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ records|map(attribute='scheme_name')|unique|list|length }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Recent (7 days)
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ records|selectattr('created_at')|list|length }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Enhanced Search Section -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header bg-gradient-primary text-white">
-                    <h6 class="m-0 font-weight-bold">
-                        <i class="fas fa-search"></i> Search Records
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <form method="GET" class="row g-3">
-                        <div class="col-md-10">
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text bg-white">
-                                    <i class="fas fa-search text-primary"></i>
-                                </span>
-                                <input type="text" class="form-control border-start-0" name="search" 
-                                       placeholder="Search by beneficiary name, panchayat, village, or registration number..." 
-                                       value="{{ search if search else '' }}"
-                                       autofocus>
-                                <button class="btn btn-primary px-4" type="submit">
-                                    <i class="fas fa-search me-2"></i> Search
-                                </button>
-                            </div>
-                            {% if search %}
-                            <small class="text-muted mt-1 d-block">
-                                <i class="fas fa-info-circle"></i> Showing results for: <strong>"{{ search }}"</strong>
-                            </small>
-                            {% endif %}
-                        </div>
-                        <div class="col-md-2">
-                            <a href="{{ url_for('user.view_records') }}" class="btn btn-outline-secondary w-100 btn-lg">
-                                <i class="fas fa-redo me-2"></i> Clear
-                            </a>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dynamic Records Table (Like Admin) -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-lg">
-                <div class="card-header py-3 bg-gradient-light">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                        <h6 class="m-0 fw-bold text-primary" id="recordCount">
-                            <i class="fas fa-list-ul"></i> My Records 
-                            <span class="badge bg-secondary ms-2 fs-6">{{ total_records }} total</span>
-                        </h6>
-                        {% if search %}
-                        <span class="badge bg-info text-white fs-6">
-                            <i class="fas fa-filter"></i> Filtered Results
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="card-body">
-                    {% if records %}
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover" id="recordsTable">
-                            <thead class="table-light" id="tableHeader">
-                                <!-- Dynamic headers will be generated here -->
-                            </thead>
-                            <tbody id="tableBody">
-                                <!-- Dynamic rows will be generated here -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <!-- Pagination -->
-                    {% if total_pages > 1 %}
-                    <nav aria-label="Records pagination" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            {% if page > 1 %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('user.view_records', page=page-1, search=search) }}">
-                                    <i class="fas fa-chevron-left"></i> Previous
-                                </a>
-                            </li>
-                            {% else %}
-                            <li class="page-item disabled">
-                                <span class="page-link"><i class="fas fa-chevron-left"></i> Previous</span>
-                            </li>
-                            {% endif %}
-
-                            {% for p in range(1, total_pages + 1) %}
-                                {% if p == page %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ p }}</span>
-                                </li>
-                                {% elif p <= 3 or p > total_pages - 3 or (p >= page - 2 and p <= page + 2) %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('user.view_records', page=p, search=search) }}">{{ p }}</a>
-                                </li>
-                                {% elif p == 4 or p == total_pages - 3 %}
-                                <li class="page-item disabled">
-                                    <span class="page-link">...</span>
-                                </li>
-                                {% endif %}
-                            {% endfor %}
-
-                            {% if page < total_pages %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('user.view_records', page=page+1, search=search) }}">
-                                    Next <i class="fas fa-chevron-right"></i>
-                                </a>
-                            </li>
-                            {% else %}
-                            <li class="page-item disabled">
-                                <span class="page-link">Next <i class="fas fa-chevron-right"></i></span>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
-                    {% endif %}
-
-                    {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
-                        <h5 class="text-muted">No records found</h5>
-                        {% if search %}
-                        <p class="text-muted">No records match your search criteria.</p>
-                        <a href="{{ url_for('user.view_records') }}" class="btn btn-primary mt-2">
-                            <i class="fas fa-redo"></i> Clear Search
-                        </a>
-                        {% else %}
-                        <p class="text-muted">You haven't created any records yet.</p>
-                        <a href="{{ url_for('user.add_record') }}" class="btn btn-primary mt-2">
-                            <i class="fas fa-plus-circle"></i> Create First Record
-                        </a>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+        </form>
     </div>
 </div>
 
-<!-- Record Details Modal - Bootstrap 5 -->
-<div class="modal fade" id="recordDetailsModal" tabindex="-1" aria-labelledby="recordDetailsLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+<!-- Records Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0" id="recordCount">Records (0 total)</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover" id="recordsTable">
+                <thead id="tableHeader">
+                    <!-- Dynamic headers will be populated here -->
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Dynamic rows will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <style>
+            /* Sticky action column styles */
+            #recordsTable {
+                position: relative;
+            }
+
+            #recordsTable th:last-child,
+            #recordsTable td:last-child {
+                position: sticky;
+                right: 0;
+                background-color: #fff;
+                z-index: 10;
+                border-left: 2px solid #dee2e6;
+                min-width: 100px;
+                text-align: center;
+                box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+            }
+
+            #recordsTable thead th:last-child {
+                background-color: #f8f9fa;
+                border-left: 2px solid #dee2e6;
+                font-weight: 600;
+            }
+
+            #recordsTable tbody tr:hover td:last-child {
+                background-color: #f8f9fa;
+            }
+
+            /* Ensure table container has proper overflow */
+            .table-responsive {
+                overflow-x: auto;
+            }
+
+            /* Action column specific styles */
+            .action-column {
+                white-space: nowrap;
+                padding: 8px 12px !important;
+            }
+
+            .action-column .btn {
+                padding: 4px 12px;
+                font-size: 12px;
+            }
+
+            /* Ensure data doesn't hide behind sticky column */
+            #recordsTable tbody td:not(:last-child) {
+                padding-right: 20px;
+            }
+        </style>
+
+        <!-- Dynamic Pagination -->
+        <nav aria-label="Records pagination" id="paginationNav" style="display: none;">
+            <ul class="pagination justify-content-center" id="paginationList">
+                <!-- Dynamic pagination will be populated here -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- View Record Details Modal -->
+<div class="modal fade" id="viewRecordModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="recordDetailsLabel">
-                    <i class="fas fa-file-alt"></i> Record Details
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header">
+                <h5 class="modal-title">Record Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body" id="recordDetailsContent">
-                <!-- Content will be loaded here -->
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
+            <div class="modal-body">
+                <div id="viewRecordContent">
+                    <div class="text-center text-muted py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading record details...</p>
                     </div>
-                    <p class="mt-3 text-muted">Loading record details...</p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times"></i> Close
-                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -280,14 +155,15 @@
 
 {% block scripts %}
 <script>
-    // Store records data from Jinja
-    const recordsData = {{ records|tojson|safe }};
-    
     // Global variables for data management
-    let allFields = new Set();
-    let fieldSchemes = new Map();
+    let allFields = new Set(); // Store all unique fields from custom_data
+    let fieldSchemes = new Map(); // Map fields to their schemes
+    let currentPage = 1;
+    let totalPages = 0; // Initialize to 0 to ensure pagination is hidden until data loads
+    let totalRecords = 0;
+    let perPage = 10;
 
-    // Format field values
+    // Global function to format field values
     function formatFieldValue(value) {
         if (!value) return '-';
 
@@ -309,7 +185,12 @@
         // Handle objects (like MongoDB date objects)
         if (typeof value === 'object' && value !== null) {
             if (value.$date) {
-                return new Date(value.$date).toLocaleDateString();
+                try {
+                    const date = new Date(value.$date);
+                    return date.toLocaleDateString();
+                } catch (e) {
+                    return value.$date;
+                }
             }
             return JSON.stringify(value);
         }
@@ -317,113 +198,7 @@
         return value;
     }
 
-    // Generate table headers
-    function generateTableHeaders() {
-        const thead = document.getElementById('tableHeader');
-        if (!thead) return;
-
-        const headerRow = document.createElement('tr');
-
-        // Add dynamic columns for each field
-        allFields.forEach(field => {
-            const th = document.createElement('th');
-            th.textContent = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            th.style.minWidth = '150px';
-            headerRow.appendChild(th);
-        });
-
-        // Add action column (sticky to right)
-        const actionTh = document.createElement('th');
-        actionTh.innerHTML = 'Actions';
-        actionTh.className = 'action-column';
-        actionTh.style.position = 'sticky';
-        actionTh.style.right = '0';
-        actionTh.style.backgroundColor = '#f8f9fc';
-        actionTh.style.zIndex = '10';
-        actionTh.style.borderLeft = '2px solid #dee2e6';
-        actionTh.style.minWidth = '100px';
-        actionTh.style.textAlign = 'center';
-        actionTh.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.1)';
-        headerRow.appendChild(actionTh);
-
-        thead.innerHTML = '';
-        thead.appendChild(headerRow);
-    }
-
-    // Generate table rows
-    function generateTableRows(records) {
-        const tbody = document.getElementById('tableBody');
-        if (!tbody) return;
-
-        tbody.innerHTML = '';
-
-        records.forEach(record => {
-            const row = document.createElement('tr');
-
-            // Add data cells for each field
-            allFields.forEach(field => {
-                const td = document.createElement('td');
-                const value = record.custom_data && record.custom_data[field] 
-                    ? record.custom_data[field] 
-                    : '-';
-                td.textContent = formatFieldValue(value);
-                row.appendChild(td);
-            });
-
-            // Add action cell (sticky)
-            const actionTd = document.createElement('td');
-            actionTd.className = 'action-column';
-            actionTd.style.position = 'sticky';
-            actionTd.style.right = '0';
-            actionTd.style.backgroundColor = '#fff';
-            actionTd.style.zIndex = '5';
-            actionTd.style.borderLeft = '2px solid #dee2e6';
-            actionTd.style.textAlign = 'center';
-            actionTd.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.05)';
-            
-            const recordId = record._id && record._id.$oid ? record._id.$oid : record._id;
-            actionTd.innerHTML = `
-                <button class="btn btn-sm btn-outline-primary" onclick="viewRecordDetails('${recordId}')">
-                    <i class="fas fa-eye"></i> View
-                </button>
-            `;
-            row.appendChild(actionTd);
-
-            tbody.appendChild(row);
-        });
-    }
-
-    // Update records table
-    function updateRecordsTable(records) {
-        // Clear existing data
-        allFields.clear();
-        fieldSchemes.clear();
-
-        if (records.length === 0) {
-            showNoRecordsMessage();
-            return;
-        }
-
-        // Collect all unique fields from custom_data
-        records.forEach(record => {
-            if (record.custom_data) {
-                Object.keys(record.custom_data).forEach(key => {
-                    allFields.add(key);
-                });
-            }
-        });
-
-        // Generate dynamic headers
-        generateTableHeaders();
-
-        // Generate table rows
-        generateTableRows(records);
-
-        // Update record count
-        updateRecordCount(records.length);
-    }
-
-    // Show no records message
+    // Global function to show no records message
     function showNoRecordsMessage() {
         const tbody = document.getElementById('tableBody');
         const thead = document.getElementById('tableHeader');
@@ -437,39 +212,433 @@
         }
     }
 
-    // Update record count
+    // Global function to update record count
     function updateRecordCount(count) {
         const recordCountElement = document.getElementById('recordCount');
         if (recordCountElement) {
-            recordCountElement.innerHTML = `
-                <i class="fas fa-list-ul"></i> My Records 
-                <span class="badge bg-secondary ms-2 fs-6">${count} total</span>
-            `;
+            recordCountElement.textContent = `Records (${count} total)`;
         }
     }
 
-    // View record details
-    function viewRecordDetails(recordId) {
-        const modalContent = document.getElementById('recordDetailsContent');
-        modalContent.innerHTML = `
+    // Global function to update pagination
+    function updatePagination(totalRecords, currentPage, totalPages) {
+        const paginationNav = document.getElementById('paginationNav');
+        const paginationList = document.getElementById('paginationList');
+
+        if (totalPages <= 1) {
+            paginationNav.style.display = 'none';
+            return;
+        }
+
+        paginationNav.style.display = 'block';
+        paginationList.innerHTML = '';
+
+        // Previous button
+        const prevLi = document.createElement('li');
+        const isPrevDisabled = currentPage === 1;
+        prevLi.className = `page-item ${isPrevDisabled ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${currentPage - 1})" ${isPrevDisabled ? 'tabindex="-1"' : ''}>Previous</a>`;
+        paginationList.appendChild(prevLi);
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        if (startPage > 1) {
+            const firstLi = document.createElement('li');
+            firstLi.className = 'page-item';
+            firstLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(1)">1</a>`;
+            paginationList.appendChild(firstLi);
+            
+            if (startPage > 2) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                paginationList.appendChild(ellipsisLi);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const li = document.createElement('li');
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            li.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${i})">${i}</a>`;
+            paginationList.appendChild(li);
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                paginationList.appendChild(ellipsisLi);
+            }
+            
+            const lastLi = document.createElement('li');
+            lastLi.className = 'page-item';
+            lastLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${totalPages})">${totalPages}</a>`;
+            paginationList.appendChild(lastLi);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        const isNextDisabled = currentPage === totalPages;
+        nextLi.className = `page-item ${isNextDisabled ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${currentPage + 1})" ${isNextDisabled ? 'tabindex="-1"' : ''}>Next</a>`;
+        paginationList.appendChild(nextLi);
+    }
+
+    // Global function to generate table headers
+    function generateTableHeaders() {
+        const thead = document.getElementById('tableHeader');
+        if (!thead) return;
+
+        const headerRow = document.createElement('tr');
+
+        // Add dynamic columns for each field
+        allFields.forEach(field => {
+            const schemes = Array.from(fieldSchemes.get(field));
+            const tooltip = schemes.length > 1 ? `title="Used in: ${schemes.join(', ')}"` : '';
+            const headerText = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            const th = document.createElement('th');
+            th.innerHTML = `<span ${tooltip}>${headerText}</span>`;
+            th.style.position = 'sticky';
+            th.style.top = '0';
+            th.style.backgroundColor = '#f8f9fa';
+            th.style.zIndex = '10';
+            headerRow.appendChild(th);
+        });
+
+        // Add action column (sticky to right)
+        const actionTh = document.createElement('th');
+        actionTh.innerHTML = 'Actions';
+        actionTh.style.position = 'sticky';
+        actionTh.style.right = '0';
+        actionTh.style.backgroundColor = '#f8f9fa';
+        actionTh.style.zIndex = '10';
+        actionTh.style.borderLeft = '2px solid #dee2e6';
+        actionTh.style.minWidth = '100px';
+        actionTh.style.textAlign = 'center';
+        actionTh.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.1)';
+        headerRow.appendChild(actionTh);
+
+        thead.innerHTML = '';
+        thead.appendChild(headerRow);
+    }
+
+    // Global function to generate table rows
+    function generateTableRows(records) {
+        const tbody = document.getElementById('tableBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        records.forEach(record => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-record-id', record._id.$oid || record._id);
+
+            // Add data cells for each field
+            allFields.forEach(field => {
+                const value = record.custom_data ? record.custom_data[field] : '';
+                const cell = document.createElement('td');
+                cell.textContent = formatFieldValue(value);
+                row.appendChild(cell);
+            });
+
+            // Add action cell (sticky to right)
+            const actionCell = document.createElement('td');
+            actionCell.style.position = 'sticky';
+            actionCell.style.right = '0';
+            actionCell.style.backgroundColor = 'white';
+            actionCell.style.zIndex = '5';
+            actionCell.style.borderLeft = '2px solid #dee2e6';
+            actionCell.style.minWidth = '100px';
+            actionCell.style.textAlign = 'center';
+            actionCell.style.boxShadow = '-2px 0 4px rgba(0,0,0,0.1)';
+
+            const recordId = record._id.$oid || record._id;
+            actionCell.innerHTML = `
+                <button class="btn btn-sm btn-outline-primary" onclick="viewRecord('${recordId}')" title="View">
+                    <i class="fas fa-eye"></i>
+                </button>
+            `;
+            row.appendChild(actionCell);
+
+            tbody.appendChild(row);
+        });
+    }
+
+    // Global function to update records table
+    function updateRecordsTable(records, totalRecords, currentPage, totalPages) {
+        // Clear existing data
+        allFields.clear();
+        fieldSchemes.clear();
+
+        if (records.length === 0) {
+            showNoRecordsMessage();
+            updateRecordCount(0);
+            updatePagination(0, 1, 1);
+            return;
+        }
+
+        // Collect all unique fields from custom_data
+        records.forEach(record => {
+            if (record.custom_data) {
+                Object.keys(record.custom_data).forEach(field => {
+                    allFields.add(field);
+                    if (!fieldSchemes.has(field)) {
+                        fieldSchemes.set(field, new Set());
+                    }
+                    fieldSchemes.get(field).add(record.scheme_name || 'Unknown');
+                });
+            }
+        });
+
+        // Generate dynamic headers
+        generateTableHeaders();
+
+        // Generate table rows
+        generateTableRows(records);
+
+        // Update record count
+        updateRecordCount(totalRecords);
+
+        // Show pagination if needed
+        updatePagination(totalRecords, currentPage, totalPages);
+    }
+
+    // Function to load a specific page
+    function loadPage(page) {
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        loadUserRecords();
+    }
+
+    // Function to load user records with pagination
+    function loadUserRecords() {
+        const searchTerm = document.getElementById('search').value;
+
+        console.log('Loading user records with:', {
+            search: searchTerm,
+            page: currentPage
+        });
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchTerm && searchTerm !== '') {
+            params.append('search', searchTerm);
+        }
+        params.append('page', currentPage);
+        params.append('per_page', perPage);
+
+        const url = `/user/api/user-records?${params.toString()}`;
+        console.log('Fetching from URL:', url);
+
+        // Show loading state
+        const tbody = document.getElementById('tableBody');
+        const thead = document.getElementById('tableHeader');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div><p class="mt-2">Loading records...</p></td></tr>';
+        }
+        if (thead) {
+            thead.innerHTML = '<tr><th class="text-center py-4">Loading...</th></tr>';
+        }
+
+        // Make API call to get user records
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                console.log('User records response:', data);
+                if (data.success) {
+                    totalRecords = data.total_records;
+                    totalPages = data.total_pages;
+                    currentPage = data.page;
+                    updateRecordsTable(data.records, totalRecords, currentPage, totalPages);
+                } else {
+                    console.error('Error loading records:', data.message);
+                    showNoRecordsMessage();
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching records:', error);
+                showNoRecordsMessage();
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Load user's records
+        loadUserRecords();
+
+
+        function applyFrontendFilters() {
+            // Reset to page 1 when applying filters
+            currentPage = 1;
+            loadUserRecords();
+        }
+
+        // Search functionality
+        function setupSearchFunctionality() {
+            const searchInput = document.getElementById('search');
+            const searchBtn = document.getElementById('searchBtn');
+            const clearBtn = document.getElementById('clearBtn');
+
+            // Real-time search as user types
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    applyFrontendFilters();
+                });
+            }
+
+            // Search button click
+            if (searchBtn) {
+                searchBtn.addEventListener('click', function () {
+                    applyFrontendFilters();
+                });
+            }
+
+            // Clear button click
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function () {
+                    searchInput.value = '';
+                    applyFrontendFilters();
+                });
+            }
+
+            // Enter key in search input
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyFrontendFilters();
+                    }
+                });
+            }
+        }
+
+        // Download functionality
+        function setupDownloadButton() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', function () {
+                    downloadCurrentData();
+                });
+            }
+        }
+
+        function downloadCurrentData() {
+            if (totalRecords === 0) {
+                alert('No data to download');
+                return;
+            }
+
+            const searchTerm = document.getElementById('search').value;
+
+            // Build query parameters for download (get all records)
+            const params = new URLSearchParams();
+            if (searchTerm && searchTerm !== '') {
+                params.append('search', searchTerm);
+            }
+            params.append('page', 1);
+            params.append('per_page', totalRecords); // Get all records
+
+            const url = `/user/api/user-records?${params.toString()}`;
+
+            // Show loading state
+            const downloadBtn = document.getElementById('downloadBtn');
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Downloading...';
+            downloadBtn.disabled = true;
+
+            // Make API call to get all user records
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.records.length > 0) {
+                        const csvContent = createCSVContent(data.records);
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement('a');
+
+                        if (link.download !== undefined) {
+                            const url = URL.createObjectURL(blob);
+                            link.setAttribute('href', url);
+                            link.setAttribute('download', 'my_records.csv');
+                            link.style.visibility = 'hidden';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+                    } else {
+                        alert('No data to download');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error downloading data:', error);
+                    alert('Error downloading data. Please try again.');
+                })
+                .finally(() => {
+                    // Restore button state
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.disabled = false;
+                });
+        }
+
+        function createCSVContent(records) {
+            // Create headers
+            const headers = ['Department', 'Scheme', 'Created At'];
+            allFields.forEach(field => {
+                headers.push(field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+            });
+
+            let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
+
+            // Create rows
+            records.forEach(record => {
+                const row = [
+                    record.department_name || '',
+                    record.scheme_name || '',
+                    record.created_at ? new Date(record.created_at).toLocaleDateString() : ''
+                ];
+
+                allFields.forEach(field => {
+                    const value = record.custom_data && record.custom_data[field] ? record.custom_data[field] : '';
+                    row.push(formatFieldValue(value));
+                });
+
+                csvContent += row.map(v => `"${v.toString().replace(/"/g, '""')}"`).join(',') + '\n';
+            });
+
+            return csvContent;
+        }
+
+        // Setup search and download
+        setupSearchFunctionality();
+        setupDownloadButton();
+    });
+
+    // View record function
+    function viewRecord(recordId) {
+        console.log('Viewing record:', recordId);
+
+        const modal = new bootstrap.Modal(document.getElementById('viewRecordModal'));
+        modal.show();
+
+        const container = document.getElementById('viewRecordContent');
+        container.innerHTML = `
             <div class="text-center py-4">
                 <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                    <span class="sr-only">Loading...</span>
                 </div>
-                <p class="mt-3 text-muted">Loading record details...</p>
+                <p class="mt-2 text-muted">Loading record details...</p>
             </div>
         `;
-        
-        const modal = new bootstrap.Modal(document.getElementById('recordDetailsModal'));
-        modal.show();
-        
+
         fetch(`/user/api/record-details/${recordId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     const record = data.record;
                     let customDataHtml = '';
-                    
+
                     if (record.custom_data) {
                         customDataHtml = '<div class="row">';
                         for (const [key, value] of Object.entries(record.custom_data)) {
@@ -477,8 +646,8 @@
                                 <div class="col-md-6 mb-3">
                                     <div class="card bg-light">
                                         <div class="card-body py-2">
-                                            <small class="text-muted d-block">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</small>
-                                            <strong>${formatFieldValue(value)}</strong>
+                                            <small class="text-muted">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</small>
+                                            <div class="fw-bold">${formatFieldValue(value)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -486,189 +655,70 @@
                         }
                         customDataHtml += '</div>';
                     }
-                    
-                    modalContent.innerHTML = `
-                        <div class="container-fluid">
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <h6 class="text-muted mb-2">Scheme</h6>
-                                    <p class="fw-bold text-primary">${record.scheme_name || 'Unknown'}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6 class="text-muted mb-2">Department</h6>
-                                    <p><span class="badge bg-info">${record.department_name || 'Unknown'}</span></p>
-                                </div>
+
+                    container.innerHTML = `
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Scheme</h6>
+                                <p class="fw-bold">${record.scheme_name || 'Unknown'}</p>
                             </div>
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <h6 class="text-muted mb-2">Created By</h6>
-                                    <p><i class="fas fa-user"></i> ${record.created_by || 'Unknown'}</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6 class="text-muted mb-2">Created On</h6>
-                                    <p><i class="fas fa-calendar"></i> ${record.created_at || '-'}</p>
-                                </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Department</h6>
+                                <p><span class="badge bg-info">${record.department_name || 'Unknown'}</span></p>
                             </div>
-                            
-                            <hr>
-                            
-                            <h6 class="text-muted mb-3">Record Data</h6>
-                            ${customDataHtml || '<p class="text-muted fst-italic">No custom data available</p>'}
                         </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Created By</h6>
+                                <p><i class="fas fa-user"></i> ${record.created_by || 'Unknown'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Created On</h6>
+                                <p><i class="fas fa-calendar"></i> ${new Date(record.created_at).toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h6 class="text-muted mb-3">Record Data</h6>
+                        ${customDataHtml || '<p class="text-muted">No data available</p>'}
                     `;
                 } else {
-                    modalContent.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle"></i> ${data.message || 'Error loading record details'}
-                        </div>
-                    `;
+                    container.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
                 }
             })
             .catch(error => {
-                console.error('Error fetching record details:', error);
-                modalContent.innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i> Error loading record details. Please try again.
-                    </div>
-                `;
+                console.error('Error loading record:', error);
+                container.innerHTML = `<div class="alert alert-danger">Error loading record details</div>`;
             });
     }
 
-    // Initialize on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        if (recordsData && recordsData.length > 0) {
-            updateRecordsTable(recordsData);
-        } else {
-            showNoRecordsMessage();
-        }
-    });
+    // Show alert function
+    function showAlert(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+        `;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
 </script>
-
-<style>
-/* Card border styles */
-.border-left-primary {
-    border-left: 0.25rem solid #4e73df !important;
-}
-
-.border-left-success {
-    border-left: 0.25rem solid #1cc88a !important;
-}
-
-.border-left-info {
-    border-left: 0.25rem solid #36b9cc !important;
-}
-
-.border-left-warning {
-    border-left: 0.25rem solid #f6c23e !important;
-}
-
-/* Gradient backgrounds */
-.bg-gradient-primary {
-    background: linear-gradient(180deg, #4e73df 10%, #224abe 100%);
-}
-
-.bg-gradient-light {
-    background: linear-gradient(180deg, #f8f9fc 10%, #eaecf4 100%);
-}
-
-/* Sticky action column styles */
-#recordsTable {
-    position: relative;
-}
-
-#recordsTable th:last-child,
-#recordsTable td:last-child {
-    position: sticky;
-    right: 0;
-    z-index: 5;
-}
-
-#recordsTable thead th:last-child {
-    z-index: 10;
-}
-
-#recordsTable tbody tr:hover td:last-child {
-    background-color: rgba(78, 115, 223, 0.05);
-}
-
-/* Ensure table container has proper overflow */
-.table-responsive {
-    overflow-x: auto;
-    position: relative;
-}
-
-/* Action column specific styles */
-.action-column {
-    background-color: #fff;
-}
-
-.action-column .btn-group {
-    display: flex;
-    gap: 4px;
-}
-
-.action-column .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-}
-
-/* Enhanced table styling */
-.table thead th {
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-    background-color: #f8f9fc;
-}
-
-.table tbody tr {
-    transition: all 0.2s ease;
-}
-
-.table tbody tr:hover {
-    background-color: rgba(78, 115, 223, 0.05);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-/* Search input enhancement */
-.form-control:focus {
-    border-color: #4e73df;
-    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
-}
-
-/* Modal improvements */
-.modal-header.bg-primary {
-    background: linear-gradient(180deg, #4e73df 10%, #224abe 100%) !important;
-}
-
-/* Pagination styling */
-.pagination .page-link {
-    border-radius: 50%;
-    margin: 0 2px;
-    min-width: 38px;
-    text-align: center;
-}
-
-.pagination .page-item.active .page-link {
-    background-color: #4e73df;
-    border-color: #4e73df;
-}
-
-/* Responsive improvements */
-@media (max-width: 768px) {
-    .input-group-lg {
-        font-size: 1rem;
-    }
-    
-    .card-header h6 {
-        font-size: 0.9rem;
-    }
-    
-    #recordsTable th,
-    #recordsTable td {
-        min-width: 120px;
-    }
-}
-</style>
 {% endblock %}

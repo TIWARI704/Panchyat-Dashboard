@@ -598,3 +598,91 @@ def get_user_dashboard_data():
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'message': str(e)})
+    
+@user_bp.route('/api/user-records')
+@login_required
+def get_user_records():
+    """API endpoint to fetch user's own records with pagination"""
+    try:
+        user_id = session.get('user_id')
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '')
+        
+        # Get user info to check access
+        user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 400
+        
+        # Build query - get records created by this user
+        query = {
+            'created_by': user.get('username'),
+            'is_active': True
+        }
+        
+        # Add search conditions
+        if search:
+            search_conditions = []
+            
+            # Search in custom_data fields
+            search_conditions.append({'custom_data': {'$regex': search, '$options': 'i'}})
+            
+            # Search in legacy fields if they exist
+            legacy_fields = ['panchayat_name', 'village_name', 'beneficiary_name', 'registration_number']
+            for field in legacy_fields:
+                search_conditions.append({field: {'$regex': search, '$options': 'i'}})
+            
+            query['$or'] = search_conditions
+        
+        # Calculate pagination
+        skip = (page - 1) * per_page
+        
+        # Get records with department and scheme names using aggregation
+        pipeline = [
+            {'$match': query},
+            {'$lookup': {
+                'from': 'departments',
+                'localField': 'department_id',
+                'foreignField': '_id',
+                'as': 'department'
+            }},
+            {'$lookup': {
+                'from': 'schemes',
+                'localField': 'scheme_id',
+                'foreignField': '_id',
+                'as': 'scheme'
+            }},
+            {'$addFields': {
+                'department_name': {'$arrayElemAt': ['$department.name', 0]},
+                'scheme_name': {'$arrayElemAt': ['$scheme.name', 0]}
+            }},
+            {'$sort': {'created_at': -1}},
+            {'$skip': skip},
+            {'$limit': per_page}
+        ]
+        
+        records = list(mongo.db.panchayat_records.aggregate(pipeline))
+        
+        # Get total count for pagination
+        total_records = mongo.db.panchayat_records.count_documents(query)
+        total_pages = (total_records + per_page - 1) // per_page
+        
+        # Convert ObjectId to string for JSON serialization
+        for record in records:
+            record['_id'] = {'$oid': str(record['_id'])}
+            if 'department_id' in record:
+                record['department_id'] = {'$oid': str(record['department_id'])}
+            if 'scheme_id' in record:
+                record['scheme_id'] = {'$oid': str(record['scheme_id'])}
+        
+        return jsonify({
+            'success': True,
+            'records': records,
+            'total_records': total_records,
+            'page': page,
+            'per_page': per_page,
+            'total_pages': total_pages
+        })
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500

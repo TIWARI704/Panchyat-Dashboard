@@ -10,7 +10,7 @@
                 <h1 class="h3 mb-0 text-gray-800">Add New Record</h1>
             </div>
         </div>
-                        </div>
+    </div>
 
     <div class="row">
         <div class="col-12">
@@ -27,7 +27,7 @@
                                 <select class="form-control" id="scheme_id" name="scheme_id" required>
                                     <option value="">Select a scheme</option>
                                     <!-- Options will be loaded dynamically -->
-                                    </select>
+                                </select>
                             </div>
                         </div>
 
@@ -47,13 +47,14 @@
                                 </button>
                                 <button type="button" class="btn btn-secondary" id="resetBtn">
                                     <i class="fas fa-undo"></i> Reset Form
-                            </button>
+                                </button>
                             </div>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
+        
     </div>
 </div>
 {% endblock %}
@@ -85,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
     resetBtn.addEventListener('click', function() {
         resetForm();
     });
+    
     
     function loadAvailableSchemes() {
         fetch('/admin/api/schemes-for-user-creation')

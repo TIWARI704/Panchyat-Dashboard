@@ -82,14 +82,7 @@ class PanchayatRecord:
     def create_record(mongo, record_data, created_by=None):
         """Create a new panchayat record"""
         try:
-            # Check if registration number already exists (only if provided)
-            if record_data.get('registration_number'):
-                existing_record = mongo.db.panchayat_records.find_one({
-                    'registration_number': record_data.get('registration_number')
-                })
-                
-                if existing_record:
-                    return {'success': False, 'message': 'Registration number already exists'}
+            # No duplicate checking needed since we don't use unique identifiers
             
             # Create new record with only provided fields
             record_doc = {
@@ -118,9 +111,9 @@ class PanchayatRecord:
                     model_id=str(result.inserted_id),
                     action='created',
                     changed_fields={
-                        'beneficiary_name': record_data.get('beneficiary_name'),
-                        'registration_number': record_data.get('registration_number'),
-                        'panchayat_name': record_data.get('panchayat_name')
+                        'department_id': str(record_data.get('department_id')),
+                        'scheme_id': str(record_data.get('scheme_id')),
+                        'custom_data_fields': len(record_data.get('custom_data', {}))
                     }
                 )
                 
@@ -639,3 +632,53 @@ class PanchayatRecord:
             
         except Exception as e:
             return []
+
+    @staticmethod
+    def get_records_by_user(mongo, user_id):
+        """Get all records created by a specific user"""
+        try:
+            # Get user info to check access
+            user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
+            if not user:
+                return {'success': False, 'message': 'User not found'}
+            
+            # Build query - get records created by this user
+            query = {
+                'created_by': user.get('username'),
+                'is_active': True
+            }
+            
+            # Get records with department and scheme names
+            pipeline = [
+                {'$match': query},
+                {'$lookup': {
+                    'from': 'departments',
+                    'localField': 'department_id',
+                    'foreignField': '_id',
+                    'as': 'department'
+                }},
+                {'$lookup': {
+                    'from': 'schemes',
+                    'localField': 'scheme_id',
+                    'foreignField': '_id',
+                    'as': 'scheme'
+                }},
+                {'$addFields': {
+                    'department_name': {'$arrayElemAt': ['$department.name', 0]},
+                    'scheme_name': {'$arrayElemAt': ['$scheme.name', 0]}
+                }},
+                {'$sort': {'created_at': -1}}
+            ]
+            
+            records = list(mongo.db.panchayat_records.aggregate(pipeline))
+            
+            return {
+                'success': True,
+                'records': records,
+                'total': len(records)
+            }
+        except Exception as e:
+            print(f"ERROR in get_records_by_user: {e}")
+            import traceback
+            traceback.print_exc()
+            return {'success': False, 'message': f'Error fetching records: {str(e)}'}
