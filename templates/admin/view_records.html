@@ -250,8 +250,16 @@
     // Global variables for data management
     let allFields = new Set(); // Store all unique fields from custom_data
     let fieldSchemes = new Map(); // Map fields to their schemes
-    let allRecords = []; // Store all records for frontend filtering
-    let filteredRecords = []; // Store currently filtered records
+    let currentPage = 1;
+    let totalPages = 0; // Initialize to 0 to ensure pagination is hidden until data loads
+    let totalRecords = 0;
+    let perPage = 10;
+    let currentFilters = {
+        department_id: '',
+        scheme_id: '',
+        taluka: '',
+        search: ''
+    };
 
     // Global function to format field values
     function formatFieldValue(value) {
@@ -313,11 +321,11 @@
     }
 
     // Global function to update pagination
-    function updatePagination(totalRecords) {
+    function updatePagination(totalRecords, currentPage, totalPages) {
         const paginationNav = document.getElementById('paginationNav');
         const paginationList = document.getElementById('paginationList');
 
-        if (totalRecords <= 10) { // Assuming 10 records per page
+        if (totalPages <= 1) {
             paginationNav.style.display = 'none';
             return;
         }
@@ -325,13 +333,58 @@
         paginationNav.style.display = 'block';
         paginationList.innerHTML = '';
 
-        const totalPages = Math.ceil(totalRecords / 10);
-        for (let i = 1; i <= totalPages; i++) {
+        // Previous button
+        const prevLi = document.createElement('li');
+        const isPrevDisabled = currentPage === 1;
+        prevLi.className = `page-item ${isPrevDisabled ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${currentPage - 1})" ${isPrevDisabled ? 'tabindex="-1"' : ''}>Previous</a>`;
+        paginationList.appendChild(prevLi);
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        if (startPage > 1) {
+            const firstLi = document.createElement('li');
+            firstLi.className = 'page-item';
+            firstLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(1)">1</a>`;
+            paginationList.appendChild(firstLi);
+            
+            if (startPage > 2) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                paginationList.appendChild(ellipsisLi);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
             const li = document.createElement('li');
-            li.className = 'page-item';
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
             li.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${i})">${i}</a>`;
             paginationList.appendChild(li);
         }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                paginationList.appendChild(ellipsisLi);
+            }
+            
+            const lastLi = document.createElement('li');
+            lastLi.className = 'page-item';
+            lastLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${totalPages})">${totalPages}</a>`;
+            paginationList.appendChild(lastLi);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        const isNextDisabled = currentPage === totalPages;
+        nextLi.className = `page-item ${isNextDisabled ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${currentPage + 1})" ${isNextDisabled ? 'tabindex="-1"' : ''}>Next</a>`;
+        paginationList.appendChild(nextLi);
     }
 
     // Global function to generate table headers
@@ -419,14 +472,15 @@
     }
 
     // Global function to update records table
-    function updateRecordsTable(records) {
-
+    function updateRecordsTable(records, totalRecords, currentPage, totalPages) {
         // Clear existing data
         allFields.clear();
         fieldSchemes.clear();
 
         if (records.length === 0) {
             showNoRecordsMessage();
+            updateRecordCount(0);
+            updatePagination(0, 1, 1);
             return;
         }
 
@@ -450,10 +504,89 @@
         generateTableRows(records);
 
         // Update record count
-        updateRecordCount(records.length);
+        updateRecordCount(totalRecords);
 
         // Show pagination if needed
-        updatePagination(records.length);
+        updatePagination(totalRecords, currentPage, totalPages);
+    }
+
+    // Function to load a specific page
+    function loadPage(page) {
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        loadFilteredRecords();
+    }
+
+    // Function to load filtered records with pagination
+    function loadFilteredRecords() {
+        const departmentFilter = document.getElementById('department_filter').value;
+        const schemeFilter = document.getElementById('scheme_filter').value;
+        const talukaFilter = document.getElementById('taluka_filter').value;
+        const searchTerm = document.getElementById('search').value;
+
+        // Update current filters
+        currentFilters.department_id = departmentFilter;
+        currentFilters.scheme_id = schemeFilter;
+        currentFilters.taluka = talukaFilter;
+        currentFilters.search = searchTerm;
+
+        console.log('Loading filtered records with:', {
+            department: departmentFilter,
+            scheme: schemeFilter,
+            taluka: talukaFilter,
+            search: searchTerm,
+            page: currentPage
+        });
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (departmentFilter && departmentFilter !== '') {
+            params.append('department_id', departmentFilter);
+        }
+        if (schemeFilter && schemeFilter !== '') {
+            params.append('scheme_id', schemeFilter);
+        }
+        if (talukaFilter && talukaFilter !== '') {
+            params.append('taluka', talukaFilter);
+        }
+        if (searchTerm && searchTerm !== '') {
+            params.append('search', searchTerm);
+        }
+        params.append('page', currentPage);
+        params.append('per_page', perPage);
+
+        const url = `/admin/api/filtered-records?${params.toString()}`;
+        console.log('Fetching from URL:', url);
+
+        // Show loading state
+        const tbody = document.getElementById('tableBody');
+        const thead = document.getElementById('tableHeader');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div><p class="mt-2">Loading records...</p></td></tr>';
+        }
+        if (thead) {
+            thead.innerHTML = '<tr><th class="text-center py-4">Loading...</th></tr>';
+        }
+
+        // Make API call to get filtered records
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Filtered records response:', data);
+                if (data.success) {
+                    totalRecords = data.total_records;
+                    totalPages = data.total_pages;
+                    currentPage = data.page;
+                    updateRecordsTable(data.records, totalRecords, currentPage, totalPages);
+                } else {
+                    console.error('Error loading filtered records:', data.message);
+                    showNoRecordsMessage();
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching filtered records:', error);
+                showNoRecordsMessage();
+            });
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -562,87 +695,16 @@
             }
         }
 
-        function loadFilteredRecords() {
-            const departmentFilter = document.getElementById('department_filter').value;
-            const schemeFilter = document.getElementById('scheme_filter').value;
-            const talukaFilter = document.getElementById('taluka_filter').value;
-
-            console.log('Loading filtered records with:', {
-                department: departmentFilter,
-                scheme: schemeFilter,
-                taluka: talukaFilter
-            });
-
-            // Build query parameters
-            const params = new URLSearchParams();
-            if (departmentFilter && departmentFilter !== '') {
-                params.append('department_id', departmentFilter);
-            }
-            if (schemeFilter && schemeFilter !== '') {
-                params.append('scheme_id', schemeFilter);
-            }
-            if (talukaFilter && talukaFilter !== '') {
-                params.append('taluka', talukaFilter);
-            }
-
-            const url = `/admin/api/filtered-records?${params.toString()}`;
-            console.log('Fetching from URL:', url);
-
-            // Make API call to get filtered records
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Filtered records response:', data);
-                    if (data.success) {
-                        allRecords = data.records; // Store all records for frontend filtering
-                        console.log('Loaded', allRecords.length, 'records');
-                        applyFrontendFilters(); // Apply current search and filters
-                    } else {
-                        console.error('Error loading filtered records:', data.message);
-                        showNoRecordsMessage();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching filtered records:', error);
-                    showNoRecordsMessage();
-                });
-        }
 
         function applyFrontendFilters() {
-            const searchTerm = document.getElementById('search').value.toLowerCase().trim();
-
-            // Start with all records
-            filteredRecords = [...allRecords];
-
-            // Apply search filter
-            if (searchTerm) {
-                filteredRecords = filteredRecords.filter(record => {
-                    // Search in custom_data fields
-                    if (record.custom_data) {
-                        for (const [key, value] of Object.entries(record.custom_data)) {
-                            if (value && value.toString().toLowerCase().includes(searchTerm)) {
-                                return true;
-                            }
-                        }
-                    }
-
-                    // Search in other record fields
-                    const searchableFields = ['department_name', 'scheme_name', 'created_by'];
-                    for (const field of searchableFields) {
-                        if (record[field] && record[field].toLowerCase().includes(searchTerm)) {
-                            return true;
-                        }
-                    }
-
-                    return false;
-                });
-            }
-
-            // Update table with filtered results
-            updateRecordsTable(filteredRecords);
+            // Reset to page 1 when applying filters
+            currentPage = 1;
+            loadFilteredRecords();
         }
 
         function applyFilters() {
+            // Reset to page 1 when applying filters
+            currentPage = 1;
             loadFilteredRecords();
         }
 
@@ -697,17 +759,65 @@
         }
 
         function downloadCurrentData() {
-            // Download the currently filtered data (frontend filtered)
-            if (filteredRecords.length === 0) {
+            // Download the currently filtered data (server-side filtered)
+            if (totalRecords === 0) {
                 alert('No data to download');
                 return;
             }
 
-            // Create Excel data from filtered records
-            const excelData = prepareExcelData(filteredRecords);
+            // Get all records for download (bypass pagination)
+            const departmentFilter = document.getElementById('department_filter').value;
+            const schemeFilter = document.getElementById('scheme_filter').value;
+            const talukaFilter = document.getElementById('taluka_filter').value;
+            const searchTerm = document.getElementById('search').value;
 
-            // Create and download Excel file
-            downloadExcelFile(excelData, 'filtered_records.xlsx');
+            // Build query parameters for download (get all records)
+            const params = new URLSearchParams();
+            if (departmentFilter && departmentFilter !== '') {
+                params.append('department_id', departmentFilter);
+            }
+            if (schemeFilter && schemeFilter !== '') {
+                params.append('scheme_id', schemeFilter);
+            }
+            if (talukaFilter && talukaFilter !== '') {
+                params.append('taluka', talukaFilter);
+            }
+            if (searchTerm && searchTerm !== '') {
+                params.append('search', searchTerm);
+            }
+            params.append('page', 1);
+            params.append('per_page', totalRecords); // Get all records
+
+            const url = `/admin/api/filtered-records?${params.toString()}`;
+
+            // Show loading state
+            const downloadBtn = document.getElementById('downloadBtn');
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Downloading...';
+            downloadBtn.disabled = true;
+
+            // Make API call to get all filtered records
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.records.length > 0) {
+                        // Create Excel data from all filtered records
+                        const excelData = prepareExcelData(data.records);
+                        // Create and download Excel file
+                        downloadExcelFile(excelData, 'filtered_records.xlsx');
+                    } else {
+                        alert('No data to download');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error downloading data:', error);
+                    alert('Error downloading data. Please try again.');
+                })
+                .finally(() => {
+                    // Restore button state
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.disabled = false;
+                });
         }
 
         function prepareExcelData(records) {
@@ -1230,44 +1340,19 @@
             // Clear all filter rows
             filterContainer.innerHTML = '';
 
-            // Reset to show all records
-            filteredRecords = [...allRecords];
-            updateRecordsTable(filteredRecords);
-            updateRecordCount(filteredRecords.length);
-            updatePagination(filteredRecords.length);
+            // Reset to page 1 and reload records
+            currentPage = 1;
+            loadFilteredRecords();
         });
 
         function applyFiltersToData(filters) {
-            if (!allRecords || allRecords.length === 0) {
-                filteredRecords = [];
-                updateRecordsTable(filteredRecords);
-                return;
-            }
-
-            let result = [...allRecords];
-
-            filters.forEach((filter, index) => {
-                const { field, operator, value, logic } = filter;
-
-                if (index === 0) {
-                    // First filter - apply directly
-                    result = result.filter(record => evaluateFilter(record, field, operator, value));
-                } else {
-                    // Subsequent filters - apply with logic
-                    const newResult = allRecords.filter(record => evaluateFilter(record, field, operator, value));
-
-                    if (logic === 'and') {
-                        result = result.filter(record => newResult.includes(record));
-                    } else if (logic === 'or') {
-                        result = [...new Set([...result, ...newResult])];
-                    }
-                }
-            });
-
-            filteredRecords = result;
-            updateRecordsTable(filteredRecords);
-            updateRecordCount(filteredRecords.length);
-            updatePagination(filteredRecords.length);
+            // For now, we'll implement advanced filters as frontend filtering
+            // This could be enhanced to send filters to the backend for server-side filtering
+            console.log('Advanced filters applied:', filters);
+            
+            // Reset to page 1 when applying advanced filters
+            currentPage = 1;
+            loadFilteredRecords();
         }
 
         function evaluateFilter(record, field, operator, value) {
@@ -1344,34 +1429,8 @@
                         const tableBody = document.getElementById('tableBody');
                         const targetRow = tableBody.querySelector(`tr[data-record-id="${recordId}"]`);
 
-                        if (targetRow) {
-                            console.log('Found row to delete:', targetRow);
-
-                            // Add fade out animation
-                            targetRow.style.transition = 'all 0.3s ease';
-                            targetRow.style.opacity = '0';
-                            targetRow.style.transform = 'translateX(-100%)';
-
-                            // Remove the row after animation
-                            setTimeout(() => {
-                                targetRow.remove();
-                                console.log('Row removed from DOM');
-
-                                // Update total count
-                                const currentCount = parseInt(document.getElementById('recordCount').textContent.match(/\d+/)[0]);
-                                document.getElementById('recordCount').textContent = `Records (${currentCount - 1} total)`;
-
-                                // Force browser to update the display
-                                tableBody.style.display = 'none';
-                                tableBody.offsetHeight; // Trigger reflow
-                                tableBody.style.display = '';
-
-                            }, 300);
-                        } else {
-                            console.log('Row not found, refreshing table...');
-                            // Fallback: refresh the entire table
-                            loadFilteredRecords();
-                        }
+                        // Reload the current page to show updated data
+                        loadFilteredRecords();
 
                     } else {
                         // Show error message
@@ -1445,14 +1504,39 @@
             </div>
         `;
 
-        // Find the record in allRecords
-        const record = allRecords.find(r => {
-            const id = r._id.$oid || r._id;
-            return id === recordId;
-        });
+        // Find the record in current page records
+        const tableBody = document.getElementById('tableBody');
+        const targetRow = tableBody.querySelector(`tr[data-record-id="${recordId}"]`);
+        
+        if (!targetRow) {
+            container.innerHTML = '<div class="alert alert-danger">Record not found in current page!</div>';
+            return;
+        }
+
+        // Get record data from the current page (we'll need to fetch it from server)
+        // For now, we'll fetch the record details from the server
+        fetch(`/admin/api/record-details/${recordId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const record = data.record;
+                    loadRecordForEditWithData(record);
+                } else {
+                    container.innerHTML = '<div class="alert alert-danger">Error loading record: ' + data.message + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading record:', error);
+                container.innerHTML = '<div class="alert alert-danger">Error loading record details</div>';
+            });
+    }
+
+    // Load record data for editing (with record data provided)
+    function loadRecordForEditWithData(record) {
+        const container = document.getElementById('editDynamicFieldsContainer');
 
         if (!record) {
-            container.innerHTML = '<div class="alert alert-danger">Record not found in current data!</div>';
+            container.innerHTML = '<div class="alert alert-danger">Record not found!</div>';
             return;
         }
 
@@ -1614,31 +1698,8 @@
                     const editModal = bootstrap.Modal.getInstance(document.getElementById('editRecordModal'));
                     editModal.hide();
 
-                    // Update the record in allRecords array
-                    const recordIndex = allRecords.findIndex(r => {
-                        const id = r._id.$oid || r._id;
-                        return id === recordId;
-                    });
-
-                    if (recordIndex !== -1) {
-                        // Update the record data with the processed data
-                        allRecords[recordIndex].custom_data = updateData;
-                        allRecords[recordIndex].updated_at = new Date().toISOString();
-
-                        // Update filteredRecords as well
-                        const filteredIndex = filteredRecords.findIndex(r => {
-                            const id = r._id.$oid || r._id;
-                            return id === recordId;
-                        });
-
-                        if (filteredIndex !== -1) {
-                            filteredRecords[filteredIndex].custom_data = updateData;
-                            filteredRecords[filteredIndex].updated_at = new Date().toISOString();
-                        }
-
-                        // Update the table display
-                        updateRecordsTable(filteredRecords);
-                    }
+                    // Reload the current page to show updated data
+                    loadFilteredRecords();
 
                 } else {
                     showAlert('Error updating record: ' + data.message, 'danger');

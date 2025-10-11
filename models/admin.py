@@ -82,14 +82,7 @@ class PanchayatRecord:
     def create_record(mongo, record_data, created_by=None):
         """Create a new panchayat record"""
         try:
-            # Check if registration number already exists (only if provided)
-            if record_data.get('registration_number'):
-                existing_record = mongo.db.panchayat_records.find_one({
-                    'registration_number': record_data.get('registration_number')
-                })
-                
-                if existing_record:
-                    return {'success': False, 'message': 'Registration number already exists'}
+            # No duplicate checking needed since we don't use unique identifiers
             
             # Create new record with only provided fields
             record_doc = {
@@ -118,9 +111,9 @@ class PanchayatRecord:
                     model_id=str(result.inserted_id),
                     action='created',
                     changed_fields={
-                        'beneficiary_name': record_data.get('beneficiary_name'),
-                        'registration_number': record_data.get('registration_number'),
-                        'panchayat_name': record_data.get('panchayat_name')
+                        'department_id': str(record_data.get('department_id')),
+                        'scheme_id': str(record_data.get('scheme_id')),
+                        'custom_data_fields': len(record_data.get('custom_data', {}))
                     }
                 )
                 

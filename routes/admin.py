@@ -1564,16 +1564,651 @@ def get_superadmin_filter_data():
             'message': f'Error fetching filter data: {str(e)}'
         })
 
+@admin_bp.route('/api/record-details/<record_id>')
+@login_required
+@admin_required
+def get_record_details(record_id):
+    """API endpoint to get record details for editing"""
+    try:
+        from bson import ObjectId
+        
+        # Get record by ID
+        record = mongo.db.panchayat_records.find_one({'_id': ObjectId(record_id)})
+        
+        if not record:
+            return jsonify({'success': False, 'message': 'Record not found'}), 404
+        
+        # Convert ObjectId to string for JSON serialization
+        record['_id'] = {'$oid': str(record['_id'])}
+        if 'department_id' in record:
+            record['department_id'] = {'$oid': str(record['department_id'])}
+        if 'scheme_id' in record:
+            record['scheme_id'] = {'$oid': str(record['scheme_id'])}
+        
+        return jsonify({
+            'success': True,
+            'record': record
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/bulk-import')
+@login_required
+@admin_required
+def bulk_import():
+    """Bulk import page"""
+    return render_template('admin/bulk_import.html')
+
+@admin_bp.route('/import-history')
+@login_required
+@admin_required
+def import_history():
+    """Import history page"""
+    return render_template('admin/import_history.html')
+
+@admin_bp.route('/api/start-bulk-import', methods=['POST'])
+@login_required
+@admin_required
+def start_bulk_import():
+    """Start bulk import process"""
+    try:
+        from models.import_history import ImportHistory
+        import threading
+        import os
+        
+        # Get form data
+        file = request.files.get('file')
+        scheme_id = request.form.get('scheme_id')
+        department_id = request.form.get('department_id')
+        skip_duplicates = request.form.get('skip_duplicates') == 'on'
+        user_id = session.get('user_id')
+        
+        if not file or not scheme_id or not department_id:
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+        # Validate file
+        if not file.filename:
+            return jsonify({'success': False, 'message': 'No file selected'}), 400
+        
+        # Check file extension
+        allowed_extensions = {'.xlsx', '.xls', '.csv'}
+        file_ext = os.path.splitext(file.filename)[1].lower()
+        if file_ext not in allowed_extensions:
+            return jsonify({'success': False, 'message': 'Invalid file format. Only Excel (.xlsx, .xls) or CSV (.csv) files are allowed.'}), 400
+        
+        # Check file size (10MB limit)
+        file.seek(0, 2)  # Seek to end
+        file_size = file.tell()
+        file.seek(0)  # Reset to beginning
+        if file_size > 10 * 1024 * 1024:  # 10MB
+            return jsonify({'success': False, 'message': 'File size exceeds 10MB limit'}), 400
+        
+        # Get user info
+        user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 400
+        
+        # Create import record
+        import_result = ImportHistory.create_import_record(
+            mongo=mongo,
+            file_name=file.filename,
+            scheme_id=scheme_id,
+            department_id=department_id,
+            imported_by=user.get('username', 'Unknown')
+        )
+        
+        if not import_result['success']:
+            return jsonify(import_result), 400
+        
+        import_id = import_result['import_id']
+        
+        # Save file temporarily
+        import tempfile
+        temp_dir = tempfile.mkdtemp()
+        temp_file_path = os.path.join(temp_dir, file.filename)
+        file.save(temp_file_path)
+        
+        # Start background import process
+        import_thread = threading.Thread(
+            target=process_bulk_import,
+            args=(import_id, temp_file_path, scheme_id, department_id, skip_duplicates, user.get('username'))
+        )
+        import_thread.daemon = True
+        import_thread.start()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Import started successfully',
+            'import_id': import_id
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/api/import-history')
+@login_required
+@admin_required
+def get_import_history():
+    """Get import history"""
+    try:
+        from models.import_history import ImportHistory
+        
+        user_id = session.get('user_id')
+        user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
+        username = user.get('username', 'Unknown') if user else 'Unknown'
+        is_superadmin = user.get('is_superadmin', False) if user else False
+        
+        # Superadmins can see all imports, regular users see only their own
+        if is_superadmin:
+            result = ImportHistory.get_import_history(mongo, username=None, limit=100)
+        else:
+            result = ImportHistory.get_import_history(mongo, username=username, limit=100)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/api/import-details/<import_id>')
+@login_required
+@admin_required
+def get_import_details(import_id):
+    """Get import details by ID"""
+    try:
+        from models.import_history import ImportHistory
+        
+        result = ImportHistory.get_import_by_id(mongo, import_id)
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/api/stop-import/<import_id>', methods=['POST'])
+@login_required
+@admin_required
+def stop_import(import_id):
+    """Stop an import operation"""
+    try:
+        from models.import_history import ImportHistory
+        
+        user_id = session.get('user_id')
+        user = mongo.db.users.find_one({'_id': ObjectId(user_id)})
+        stopped_by = user.get('username', 'Unknown') if user else 'Unknown'
+        
+        result = ImportHistory.stop_import(mongo, import_id, stopped_by)
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/api/download-template/<scheme_id>')
+@login_required
+@admin_required
+def download_template(scheme_id):
+    """Download import template for a scheme"""
+    try:
+        from models.scheme import Scheme
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill
+        from io import BytesIO
+        
+        # Get scheme details
+        scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
+        if not scheme:
+            return jsonify({'success': False, 'message': 'Scheme not found'}), 404
+        
+        # Create Excel workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Import Template"
+        
+        # Add headers - only scheme-specific fields
+        headers = []
+        
+        # Only include scheme-specific attributes
+        if scheme.get('attributes'):
+            for attr in scheme['attributes']:
+                if attr.get('name'):
+                    headers.append(attr['name'])
+        
+        # If no attributes defined, use basic required fields
+        if not headers:
+            headers = ['beneficiary_name', 'father_name', 'mother_name', 'village_name', 'registration_number']
+        
+        # Style for headers
+        header_font = Font(bold=True)
+        header_fill = PatternFill(start_color="CCCCCC", end_color="CCCCCC", fill_type="solid")
+        
+        # Write headers
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header.replace('_', ' ').title())
+            cell.font = header_font
+            cell.fill = header_fill
+        
+        # Add sample data row
+        sample_data = []
+        for header in headers:
+            if 'name' in header.lower():
+                sample_data.append('Sample Name')
+            elif 'father' in header.lower():
+                sample_data.append('Sample Father')
+            elif 'mother' in header.lower():
+                sample_data.append('Sample Mother')
+            elif 'village' in header.lower():
+                sample_data.append('Sample Village')
+            elif 'registration' in header.lower():
+                sample_data.append('Sample Reg No')
+            elif 'income' in header.lower():
+                sample_data.append('50000')
+            elif 'size' in header.lower():
+                sample_data.append('4')
+            elif 'type' in header.lower():
+                sample_data.append('Sample Type')
+            else:
+                sample_data.append('Sample Value')
+        
+        for col, data in enumerate(sample_data, 1):
+            ws.cell(row=2, column=col, value=data)
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Save to BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Return file
+        from flask import send_file
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f"{scheme['name']}_template.xlsx",
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/api/download-template-csv/<scheme_id>')
+@login_required
+@admin_required
+def download_template_csv(scheme_id):
+    """Download CSV import template for a scheme"""
+    try:
+        import csv
+        from io import StringIO
+        
+        # Get scheme details
+        scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
+        if not scheme:
+            return jsonify({'success': False, 'message': 'Scheme not found'}), 404
+        
+        # Create CSV content
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Add headers - only scheme-specific fields
+        headers = []
+        
+        # Only include scheme-specific attributes
+        if scheme.get('attributes'):
+            for attr in scheme['attributes']:
+                if attr.get('name'):
+                    headers.append(attr['name'])
+        
+        # If no attributes defined, use basic required fields
+        if not headers:
+            headers = ['beneficiary_name', 'father_name', 'mother_name', 'village_name', 'registration_number']
+        
+        # Write headers
+        writer.writerow([header.replace('_', ' ').title() for header in headers])
+        
+        # Add sample data row
+        sample_data = []
+        for header in headers:
+            if 'name' in header.lower():
+                sample_data.append('Sample Name')
+            elif 'father' in header.lower():
+                sample_data.append('Sample Father')
+            elif 'mother' in header.lower():
+                sample_data.append('Sample Mother')
+            elif 'village' in header.lower():
+                sample_data.append('Sample Village')
+            elif 'registration' in header.lower():
+                sample_data.append('Sample Reg No')
+            elif 'income' in header.lower():
+                sample_data.append('50000')
+            elif 'size' in header.lower():
+                sample_data.append('4')
+            elif 'type' in header.lower():
+                sample_data.append('Sample Type')
+            else:
+                sample_data.append('Sample Value')
+        
+        writer.writerow(sample_data)
+        
+        # Get CSV content
+        csv_content = output.getvalue()
+        output.close()
+        
+        # Return file
+        from flask import Response
+        return Response(
+            csv_content,
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename="{scheme["name"]}_template.csv"'
+            }
+        )
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/api/validate-import-file', methods=['POST'])
+@login_required
+@admin_required
+def validate_import_file():
+    """Validate import file against scheme structure"""
+    try:
+        import pandas as pd
+        import os
+        
+        # Get form data
+        file = request.files.get('file')
+        scheme_id = request.form.get('scheme_id')
+        
+        if not file or not scheme_id:
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+        # Get scheme details
+        scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
+        if not scheme:
+            return jsonify({'success': False, 'message': 'Scheme not found'}), 404
+        
+        # Read file
+        try:
+            file_ext = os.path.splitext(file.filename)[1].lower()
+            if file_ext == '.csv':
+                df = pd.read_csv(file)
+            else:
+                df = pd.read_excel(file)
+        except Exception as e:
+            return jsonify({'success': False, 'message': f'Error reading file: {str(e)}'}), 400
+        
+        # Validate file structure
+        validation_result = validate_file_structure(df, scheme)
+        
+        return jsonify({
+            'success': True,
+            'validation': validation_result
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+def validate_file_structure(df, scheme):
+    """Validate file structure against scheme requirements"""
+    errors = []
+    
+    # Get required columns ONLY from scheme attributes
+    required_columns = []
+    
+    # Only validate against scheme-specific attributes
+    if scheme.get('attributes'):
+        for attr in scheme['attributes']:
+            if attr.get('name'):
+                required_columns.append(attr['name'])
+    
+    # If no attributes defined in scheme, use basic required fields
+    if not required_columns:
+        required_columns = ['beneficiary_name', 'father_name', 'mother_name', 'village_name', 'registration_number']
+    
+    # Check if file has data
+    if len(df) == 0:
+        errors.append('File is empty - no data rows found')
+        return {'valid': False, 'errors': errors}
+    
+    # Get file columns (normalize to lowercase)
+    file_columns = [col.lower().strip().replace(' ', '_') for col in df.columns]
+    
+    # Check for missing required columns
+    missing_columns = []
+    for required_col in required_columns:
+        if required_col not in file_columns:
+            missing_columns.append(required_col.replace('_', ' ').title())
+    
+    if missing_columns:
+        errors.append(f'Missing required columns: {", ".join(missing_columns)}')
+    
+    # Check for extra columns (warn but don't fail)
+    extra_columns = []
+    for file_col in file_columns:
+        if file_col not in required_columns:
+            extra_columns.append(file_col.replace('_', ' ').title())
+    
+    # Check for empty required fields
+    empty_required_fields = []
+    for required_col in required_columns:
+        if required_col in file_columns:
+            # Check if any values in this column are empty/null
+            if df[required_col].isna().all() or (df[required_col] == '').all():
+                empty_required_fields.append(required_col.replace('_', ' ').title())
+    
+    if empty_required_fields:
+        errors.append(f'Required columns are completely empty: {", ".join(empty_required_fields)}')
+    
+    # Check data types for numeric fields
+    type_errors = []
+    if scheme.get('attributes'):
+        for attr in scheme['attributes']:
+            attr_name = attr.get('name')
+            attr_type = attr.get('type')
+            
+            if attr_name in file_columns and attr_type in ['int', 'float']:
+                # Try to convert to numeric, check for errors
+                try:
+                    pd.to_numeric(df[attr_name], errors='coerce')
+                    # Check if all values became NaN (meaning conversion failed)
+                    if pd.to_numeric(df[attr_name], errors='coerce').isna().all():
+                        type_errors.append(f'Column "{attr_name.replace("_", " ").title()}" should contain {attr_type} values')
+                except:
+                    type_errors.append(f'Column "{attr_name.replace("_", " ").title()}" should contain {attr_type} values')
+    
+    if type_errors:
+        errors.extend(type_errors)
+    
+    # Return validation result
+    is_valid = len(errors) == 0
+    
+    result = {
+        'valid': is_valid,
+        'errors': errors,
+        'record_count': len(df),
+        'required_columns': [col.replace('_', ' ').title() for col in required_columns],
+        'file_columns': [col.replace('_', ' ').title() for col in file_columns],
+        'extra_columns': [col.replace('_', ' ').title() for col in extra_columns] if extra_columns else []
+    }
+    
+    return result
+
+def process_bulk_import(import_id, file_path, scheme_id, department_id, skip_duplicates, username):
+    """Background process for bulk import"""
+    try:
+        from models.import_history import ImportHistory, ImportStatus
+        from models.admin import PanchayatRecord
+        import pandas as pd
+        import os
+        import shutil
+        
+        # Update status to in progress
+        ImportHistory.update_import_status(mongo, import_id, ImportStatus.IN_PROGRESS)
+        
+        # Read file (Excel or CSV)
+        try:
+            file_ext = os.path.splitext(file_path)[1].lower()
+            if file_ext == '.csv':
+                df = pd.read_csv(file_path)
+            else:
+                df = pd.read_excel(file_path)
+        except Exception as e:
+            ImportHistory.update_import_status(
+                mongo, import_id, ImportStatus.FAILED,
+                error_message=f"Error reading file: {str(e)}"
+            )
+            return
+        
+        # Get total records
+        total_records = len(df)
+        total_batches = (total_records + 99) // 100  # Batch size of 100
+        
+        # Update total records and batches
+        mongo.db.import_history.update_one(
+            {'_id': ObjectId(import_id)},
+            {'$set': {
+                'total_records': total_records,
+                'total_batches': total_batches
+            }}
+        )
+        
+        # Process in batches
+        imported_count = 0
+        failed_count = 0
+        duplicate_count = 0
+        current_batch = 0
+        
+        for batch_start in range(0, total_records, 100):
+            # Check if import was stopped
+            import_record = mongo.db.import_history.find_one({'_id': ObjectId(import_id)})
+            if import_record and import_record.get('status') == ImportStatus.STOPPED.value:
+                break
+            
+            current_batch += 1
+            batch_end = min(batch_start + 100, total_records)
+            batch_df = df.iloc[batch_start:batch_end]
+            
+            # Process batch
+            batch_imported = 0
+            batch_failed = 0
+            batch_duplicate = 0
+            
+            for index, row in batch_df.iterrows():
+                try:
+                    # Check if import was stopped
+                    import_record = mongo.db.import_history.find_one({'_id': ObjectId(import_id)})
+                    if import_record and import_record.get('status') == ImportStatus.STOPPED.value:
+                        break
+                    
+                    # Prepare record data
+                    record_data = {
+                        'department_id': ObjectId(department_id),
+                        'scheme_id': ObjectId(scheme_id),
+                        'created_by': username,
+                        'custom_data': {}
+                    }
+                    
+                    # Map Excel columns to record fields
+                    for column in df.columns:
+                        value = row[column]
+                        if pd.notna(value):
+                            # Convert to appropriate type
+                            if isinstance(value, (int, float)):
+                                record_data['custom_data'][column.lower().replace(' ', '_')] = value
+                            else:
+                                record_data['custom_data'][column.lower().replace(' ', '_')] = str(value)
+                    
+                    # Check for duplicates if skip_duplicates is enabled
+                    if skip_duplicates:
+                        # Simple duplicate check based on beneficiary name and registration number
+                        beneficiary_name = record_data['custom_data'].get('beneficiary_name', '')
+                        registration_number = record_data['custom_data'].get('registration_number', '')
+                        
+                        if beneficiary_name and registration_number:
+                            existing = mongo.db.panchayat_records.find_one({
+                                'custom_data.beneficiary_name': beneficiary_name,
+                                'custom_data.registration_number': registration_number,
+                                'scheme_id': ObjectId(scheme_id),
+                                'is_active': True
+                            })
+                            
+                            if existing:
+                                batch_duplicate += 1
+                                continue
+                    
+                    # Create record
+                    result = PanchayatRecord.create_record(mongo, record_data, username)
+                    if result['success']:
+                        batch_imported += 1
+                    else:
+                        batch_failed += 1
+                        
+                except Exception as e:
+                    batch_failed += 1
+                    print(f"Error processing row {index}: {str(e)}")
+            
+            # Update counts
+            imported_count += batch_imported
+            failed_count += batch_failed
+            duplicate_count += batch_duplicate
+            
+            # Update progress
+            ImportHistory.update_import_progress(
+                mongo, import_id, imported_count, failed_count, duplicate_count, current_batch
+            )
+        
+        # Check final status
+        import_record = mongo.db.import_history.find_one({'_id': ObjectId(import_id)})
+        if import_record and import_record.get('status') == ImportStatus.STOPPED.value:
+            # Import was stopped, status already updated
+            pass
+        else:
+            # Import completed
+            ImportHistory.update_import_status(mongo, import_id, ImportStatus.COMPLETED)
+        
+    except Exception as e:
+        # Update status to failed
+        ImportHistory.update_import_status(
+            mongo, import_id, ImportStatus.FAILED,
+            error_message=f"Import failed: {str(e)}"
+        )
+        print(f"Bulk import failed: {str(e)}")
+    
+    finally:
+        # Clean up temporary file
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            # Remove temp directory if empty
+            temp_dir = os.path.dirname(file_path)
+            if os.path.exists(temp_dir) and not os.listdir(temp_dir):
+                os.rmdir(temp_dir)
+        except Exception as e:
+            print(f"Error cleaning up temp files: {str(e)}")
+
 @admin_bp.route('/api/filtered-records')
 @login_required
 @admin_required
 def get_filtered_records_api():
-    """API endpoint to get filtered records for all admins"""
+    """API endpoint to get filtered records for all admins with proper pagination"""
     try:
         # Get filter parameters from query string
         department_id = request.args.get('department_id')
         scheme_id = request.args.get('scheme_id')
         taluka = request.args.get('taluka')
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+        search = request.args.get('search', '')
         
         # Get user ID for access filtering
         user_id = session.get('user_id')
@@ -1582,11 +2217,12 @@ def get_filtered_records_api():
         department_ids = [department_id] if department_id else None
         scheme_ids = [scheme_id] if scheme_id else None
         
-        # Get filtered records with user access control
+        # Get filtered records with user access control and proper pagination
         result = PanchayatRecord.get_all_records(
             mongo, 
-            page=1, 
-            per_page=10000,
+            page=page, 
+            per_page=per_page,
+            search=search,
             department_ids=department_ids,
             scheme_ids=scheme_ids,
             taluka_filter=taluka,
@@ -1607,7 +2243,10 @@ def get_filtered_records_api():
             return jsonify({
                 'success': True,
                 'records': records,
-                'total_records': result['total_records']
+                'total_records': result['total_records'],
+                'total_pages': result['total_pages'],
+                'page': result['page'],
+                'per_page': result['per_page']
             })
         else:
             return jsonify({

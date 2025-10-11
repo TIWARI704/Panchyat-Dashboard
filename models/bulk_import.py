@@ -135,11 +135,8 @@ class BulkImport:
     
     @staticmethod
     def get_required_columns():
-        """Get list of required columns for import"""
-        return [
-            'panchayat_name',
-            'beneficiary_name'
-        ]
+        """Get list of required columns for import - now flexible based on scheme"""
+        return []  # No hardcoded required columns - will be determined by scheme
     
     @staticmethod
     def get_optional_columns():
@@ -167,66 +164,75 @@ class BulkImport:
         ]
     
     @staticmethod
-    def validate_columns(data):
-        """Validate if required columns are present"""
+    def validate_columns(data, scheme_id=None, mongo=None):
+        """Validate columns against the selected scheme"""
         try:
             if not data:
                 return {'success': False, 'message': 'No data found in file'}
             
             # Get column names from first row
-            columns = [str(k).strip().lower() for k in list(data[0].keys())] if data else []
-            required_columns = BulkImport.get_required_columns()
+            csv_columns = [str(k).strip().lower() for k in list(data[0].keys())] if data else []
             
-            # Support aliases if users used alternate headers
-            aliases = {
-                'panchayat_name': ['panchayat', 'panchayatname'],
-                'beneficiary_name': ['beneficiary', 'beneficiaryname']
-            }
+            if not scheme_id or not mongo:
+                # If no scheme specified, just return the columns
+                return {
+                    'success': True,
+                    'columns': csv_columns,
+                    'required_columns': [],
+                    'optional_columns': csv_columns
+                }
             
-            # Rename keys in data rows if alias found
-            for req in required_columns:
-                if req not in columns:
-                    for alias in aliases.get(req, []):
-                        if alias in columns:
-                            # rename key in each row
-                            for row in data:
-                                if alias in row and req not in row:
-                                    row[req] = row.pop(alias)
-                            # update columns list
-                            columns = [req if c == alias else c for c in columns]
-                            break
+            # Get scheme details
+            scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
+            if not scheme:
+                return {'success': False, 'message': 'Invalid scheme selected'}
             
-            missing_columns = [col for col in required_columns if col not in columns]
+            # Get expected columns from scheme attributes
+            scheme_attributes = scheme.get('attributes', [])
+            expected_columns = [attr.get('name').lower() for attr in scheme_attributes]
             
+            # Check for missing columns
+            missing_columns = [col for col in expected_columns if col not in csv_columns]
+            
+            # Check for extra columns
+            extra_columns = [col for col in csv_columns if col not in expected_columns]
+            
+            errors = []
             if missing_columns:
+                errors.append(f'Missing required columns: {", ".join(missing_columns)}')
+            
+            if extra_columns:
+                errors.append(f'Extra columns found (will be ignored): {", ".join(extra_columns)}')
+            
+            if errors:
                 return {
                     'success': False,
-                    'message': f'Missing required columns: {", ".join(missing_columns)}'
+                    'message': '; '.join(errors),
+                    'missing_columns': missing_columns,
+                    'extra_columns': extra_columns,
+                    'expected_columns': expected_columns,
+                    'csv_columns': csv_columns
                 }
             
             return {
                 'success': True,
-                'columns': columns,
-                'required_columns': required_columns,
-                'optional_columns': BulkImport.get_optional_columns()
+                'columns': csv_columns,
+                'expected_columns': expected_columns,
+                'message': f'All {len(expected_columns)} required columns found'
             }
             
         except Exception as e:
             return {'success': False, 'message': f'Error validating columns: {str(e)}'}
     
     @staticmethod
-    def validate_row_data(row_data, row_number, mongo=None):
+    def validate_row_data(row_data, row_number, mongo=None, scheme_id=None):
         """Validate individual row data"""
         errors = []
         warnings = []
         
         try:
-            # Required field validations
-            if not row_data.get('panchayat_name'):
-                errors.append(f'Row {row_number}: Panchayat name is required')
-            
-            if not row_data.get('beneficiary_name'):
-                errors.append(f'Row {row_number}: Beneficiary name is required')
+            # No hardcoded required field validations - will be based on scheme
+            # Only validate data types for fields that exist
             
             # Data type validations - only validate if value exists and is not empty
             priority_val = row_data.get('priority')
@@ -330,7 +336,7 @@ class BulkImport:
             }
     
     @staticmethod
-    def process_import(mongo, file_data, user_id, username, skip_duplicates=False, update_duplicates=False):
+    def process_import(mongo, file_data, user_id, username, skip_duplicates=False, update_duplicates=False, scheme_id=None):
         """Process bulk import of records"""
         try:
             # Validate file format
@@ -345,8 +351,8 @@ class BulkImport:
             
             data = read_result['data']
             
-            # Validate columns
-            column_validation = BulkImport.validate_columns(data)
+            # Validate columns against the selected scheme
+            column_validation = BulkImport.validate_columns(data, scheme_id, mongo)
             if not column_validation['success']:
                 return column_validation
             
@@ -358,8 +364,30 @@ class BulkImport:
             
             for index, row in enumerate(data, 1):
                 try:
-                    # Validate row data
-                    row_validation = BulkImport.validate_row_data(row, index, mongo)
+                    # Use provided scheme_id or resolve from row data
+                    if scheme_id:
+                        # Use the scheme_id provided from the bulk import page
+                        scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
+                        if not scheme:
+                            failed_imports += 1
+                            errors.append(f'Row {index}: Invalid scheme ID')
+                            continue
+                        
+                        resolution = {
+                            'success': True,
+                            'department_id': scheme['department_id'],
+                            'scheme_id': ObjectId(scheme_id)
+                        }
+                    else:
+                        # Fallback to resolving from row data
+                        resolution = BulkImport.resolve_department_and_scheme(mongo, row)
+                        if not resolution['success']:
+                            failed_imports += 1
+                            errors.append(f'Row {index}: {resolution["message"]}')
+                            continue
+                    
+                    # Validate row data with scheme context
+                    row_validation = BulkImport.validate_row_data(row, index, mongo, resolution.get('scheme_id'))
                     
                     if not row_validation['success']:
                         failed_imports += 1
@@ -374,67 +402,74 @@ class BulkImport:
                         if skip_duplicates and any('already exists' in w for w in row_validation['warnings']):
                             continue
                     
-                    # Resolve department and scheme
-                    resolution = BulkImport.resolve_department_and_scheme(mongo, row)
-                    if not resolution['success']:
-                        failed_imports += 1
-                        errors.append(f'Row {index}: {resolution["message"]}')
-                        continue
+                    # Get scheme attributes to determine which fields go into custom_data
+                    scheme_attributes = []
+                    if resolution['scheme_id']:
+                        scheme = mongo.db.schemes.find_one({'_id': resolution['scheme_id']})
+                        if scheme:
+                            scheme_attributes = scheme.get('attributes', [])
                     
-                    # Prepare record data
+                    # Define standard fields that should NOT go into custom_data
+                    standard_fields = {
+                        'panchayat_name', 'village_name', 'registration_number', 'beneficiary_name',
+                        'father_name', 'mother_name', 'category', 'priority', 'schema_code',
+                        'bank_name', 'branch_name', 'ifsc_code', 'bank_account_no', 'sanction_no',
+                        'amount_released', 'installment', 'credit_date', 'house_status', 'inspection_date',
+                        'department_id', 'scheme_id', 'department_name', 'scheme_name'
+                    }
+                    
+                    # Get scheme attribute field names
+                    scheme_field_names = {attr.get('name') for attr in scheme_attributes}
+                    
+                    # Get department and scheme names for easier filtering
+                    department_name = None
+                    scheme_name = None
+                    if resolution['department_id']:
+                        department = mongo.db.departments.find_one({'_id': resolution['department_id']})
+                        department_name = department['name'] if department else None
+                    if resolution['scheme_id']:
+                        scheme = mongo.db.schemes.find_one({'_id': resolution['scheme_id']})
+                        scheme_name = scheme['name'] if scheme else None
+                    
+                    # Prepare record data with only base fields at root level
                     record_data = {
-                        'panchayat_name': row.get('panchayat_name'),
-                        'village_name': row.get('village_name'),
-                        'registration_number': row.get('registration_number'),
-                        'beneficiary_name': row.get('beneficiary_name'),
-                        'father_name': row.get('father_name'),
-                        'mother_name': row.get('mother_name'),
-                        'category': row.get('category'),
-                        'priority': BulkImport._to_int(row.get('priority'), default=0),
-                        'schema_code': row.get('schema_code'),
-                        'bank_name': row.get('bank_name'),
-                        'branch_name': row.get('branch_name'),
-                        'ifsc_code': row.get('ifsc_code'),
-                        'bank_account_no': row.get('bank_account_no'),
-                        'sanction_no': row.get('sanction_no'),
-                        'amount_released': BulkImport._to_float(row.get('amount_released'), default=0.0),
-                        'installment': BulkImport._to_int(row.get('installment'), default=0),
-                        'house_status': row.get('house_status'),
                         'department_id': resolution['department_id'],
                         'scheme_id': resolution['scheme_id']
                     }
                     
-                    # Handle dates
-                    if row.get('credit_date'):
-                        try:
-                            record_data['credit_date'] = pd.to_datetime(row['credit_date']).to_pydatetime()
-                        except:
-                            pass
-                    
-                    if row.get('inspection_date'):
-                        try:
-                            record_data['inspection_date'] = pd.to_datetime(row['inspection_date']).to_pydatetime()
-                        except:
-                            pass
-                    
-                    # Handle duplicate records
-                    if update_duplicates and row.get('registration_number'):
-                        existing = mongo.db.panchayat_records.find_one({
-                            'registration_number': row['registration_number'],
-                            'is_active': True
-                        })
-                        
-                        if existing:
-                            # Update existing record - PanchayatRecord is now imported at top
-                            update_result = PanchayatRecord.update_record(
-                                mongo, str(existing['_id']), record_data, username
-                            )
-                            if update_result:
-                                successful_imports += 1
-                            else:
-                                failed_imports += 1
-                                errors.append(f'Row {index}: Failed to update existing record')
+                    # Process ONLY fields that are defined in the scheme attributes
+                    custom_data = {}
+                    for key, value in row.items():
+                        # Skip empty values
+                        if not value or str(value).strip() == '':
                             continue
+                        
+                        # Only process fields that are defined in the scheme attributes
+                        attr_def = next((attr for attr in scheme_attributes if attr.get('name').lower() == key.lower()), None)
+                        if attr_def:
+                            data_type = attr_def.get('type', 'string')
+                            field_name = attr_def.get('name')  # Use the exact field name from scheme
+                            try:
+                                if data_type == 'int':
+                                    custom_data[field_name] = BulkImport._to_int(value, default=0)
+                                elif data_type == 'float':
+                                    custom_data[field_name] = BulkImport._to_float(value, default=0.0)
+                                elif data_type == 'date':
+                                    custom_data[field_name] = pd.to_datetime(value).to_pydatetime()
+                                elif data_type == 'boolean':
+                                    custom_data[field_name] = str(value).lower() in ['true', '1', 'yes', 'y']
+                                else:  # string, enum, etc.
+                                    custom_data[field_name] = str(value)
+                            except Exception:
+                                # If conversion fails, store as string
+                                custom_data[field_name] = str(value)
+                        # Skip fields that are not defined in the scheme attributes
+                    
+                    # Add custom_data to record_data
+                    record_data['custom_data'] = custom_data
+                    
+                    # Note: Duplicate handling is not applicable since we don't have unique identifiers
+                    # in the custom data structure. Each import creates a new record.
                     
                     # Create new record - PanchayatRecord is now imported at top
                     result = PanchayatRecord.create_record(mongo, record_data, username)
@@ -501,5 +536,72 @@ class BulkImport:
             'house_status': 'Completed',
             'inspection_date': '2024-01-20',
             'department_name': 'Sample Department',
-            'scheme_name': 'Sample Scheme'
+            'scheme_name': 'Sample Scheme',
+            # Example custom fields (these will go into custom_data)
+            'taluka': 'Sample Taluka',
+            'block': 'Sample Block',
+            'aadhar_number': '123456789012',
+            'mobile_number': '9876543210',
+            'remarks': 'Sample remarks'
         }
+    
+    @staticmethod
+    def get_dynamic_template(mongo, scheme_id):
+        """Generate dynamic template based on scheme attributes - ONLY custom scheme fields"""
+        try:
+            # Get scheme details
+            scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
+            if not scheme:
+                return {}
+            
+            # Start with empty template - only custom scheme fields
+            template = {}
+            
+            # Add ONLY scheme-specific custom fields
+            scheme_attributes = scheme.get('attributes', [])
+            for attr in scheme_attributes:
+                field_name = attr.get('name')
+                field_type = attr.get('type', 'string')
+                field_label = attr.get('label', field_name)
+                required = attr.get('required', False)
+                
+                # Generate sample value based on field type
+                if field_type == 'int':
+                    sample_value = 100
+                elif field_type == 'float':
+                    sample_value = 100.50
+                elif field_type == 'date':
+                    sample_value = '2024-01-15'
+                elif field_type == 'boolean':
+                    sample_value = 'true'
+                elif field_type == 'enum' and attr.get('options'):
+                    sample_value = attr['options'][0] if attr['options'] else 'Sample'
+                else:  # string
+                    # Generate more realistic sample data based on field name
+                    field_lower = field_name.lower()
+                    if 'name' in field_lower:
+                        sample_value = 'Sample Name'
+                    elif 'address' in field_lower:
+                        sample_value = 'Sample Address'
+                    elif 'phone' in field_lower or 'mobile' in field_lower:
+                        sample_value = '9876543210'
+                    elif 'email' in field_lower:
+                        sample_value = 'sample@email.com'
+                    elif 'id' in field_lower or 'number' in field_lower:
+                        sample_value = 'SAMPLE001'
+                    elif 'amount' in field_lower or 'cost' in field_lower or 'price' in field_lower:
+                        sample_value = '1000.00'
+                    elif 'age' in field_lower:
+                        sample_value = '25'
+                    elif 'date' in field_lower:
+                        sample_value = '2024-01-15'
+                    else:
+                        sample_value = f'Sample {field_label}'
+                
+                template[field_name] = sample_value
+            
+            return template
+            
+        except Exception as e:
+            # Return empty template if there's an error
+            return {}

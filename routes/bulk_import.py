@@ -8,6 +8,7 @@ from flask import Blueprint, render_template, request, jsonify, session, make_re
 from models.bulk_import import BulkImport
 from models.login import User
 from routes.login import login_required, admin_required, superadmin_required
+from bson import ObjectId
 import pandas as pd
 import io
 
@@ -35,8 +36,26 @@ def bulk_import_page():
         # redirect to admin dashboard (adjust if your dashboard endpoint differs)
         return redirect(url_for('admin.dashboard'))
     
+    # Get scheme_id from query parameters
+    scheme_id = request.args.get('scheme_id')
+    
+    # Get all available schemes for dropdown
+    from models.scheme import Scheme
+    schemes_result = Scheme.get_all_schemes(mongo, active_only=True)
+    schemes = schemes_result.get('schemes', []) if schemes_result.get('success') else []
+    
+    # Get selected scheme details if scheme_id is provided
+    selected_scheme = None
+    if scheme_id:
+        scheme_result = Scheme.get_scheme_by_id(mongo, scheme_id)
+        if scheme_result.get('success'):
+            selected_scheme = scheme_result.get('scheme')
+    
     # render the template in the admin subfolder
-    return render_template('admin/bulk_import.html')
+    return render_template('admin/bulk_import.html', 
+                         schemes=schemes, 
+                         selected_scheme=selected_scheme,
+                         scheme_id=scheme_id)
 
 @bulk_import_bp.route('/api/bulk-import/upload', methods=['POST'])
 @login_required
@@ -62,6 +81,7 @@ def upload_bulk_import():
         # Get options
         skip_duplicates = request.form.get('skip_duplicates') == 'true'
         update_duplicates = request.form.get('update_duplicates') == 'true'
+        scheme_id = request.form.get('scheme_id')
         
         # Process import
         result = BulkImport.process_import(
@@ -70,7 +90,8 @@ def upload_bulk_import():
             user_id=session['user_id'],
             username=session.get('username', 'Unknown'),
             skip_duplicates=skip_duplicates,
-            update_duplicates=update_duplicates
+            update_duplicates=update_duplicates,
+            scheme_id=scheme_id
         )
         
         return jsonify(result)
@@ -94,6 +115,11 @@ def validate_import_file():
         if file.filename == '':
             return jsonify({'success': False, 'message': 'No file selected'}), 400
         
+        # Get scheme_id from form data
+        scheme_id = request.form.get('scheme_id')
+        if not scheme_id:
+            return jsonify({'success': False, 'message': 'Please select a scheme first'}), 400
+        
         # Validate file format
         format_validation = BulkImport.validate_file_format(file)
         if not format_validation['success']:
@@ -106,8 +132,8 @@ def validate_import_file():
         
         data = read_result['data']
         
-        # Validate columns
-        column_validation = BulkImport.validate_columns(data)
+        # Validate columns against the selected scheme
+        column_validation = BulkImport.validate_columns(data, scheme_id, mongo)
         if not column_validation['success']:
             return jsonify(column_validation), 400
         
@@ -116,7 +142,7 @@ def validate_import_file():
         sample_warnings = []
         
         for index, row in enumerate(data[:10], 1):
-            row_validation = BulkImport.validate_row_data(row, index, mongo)
+            row_validation = BulkImport.validate_row_data(row, index, mongo, scheme_id)
             sample_errors.extend(row_validation.get('errors', []))
             sample_warnings.extend(row_validation.get('warnings', []))
         
@@ -124,6 +150,7 @@ def validate_import_file():
             'success': True,
             'total_rows': len(data),
             'columns': column_validation['columns'],
+            'expected_columns': column_validation.get('expected_columns', []),
             'sample_errors': sample_errors,
             'sample_warnings': sample_warnings,
             'preview_data': data[:5]  # First 5 rows for preview
@@ -138,8 +165,22 @@ def validate_import_file():
 def download_template():
     """Download sample import template"""
     try:
+        # Get scheme_id from query parameters
+        scheme_id = request.args.get('scheme_id')
+        
         # Create sample data
-        sample_data = [BulkImport.get_sample_template()]
+        if scheme_id:
+            # Generate dynamic template based on scheme
+            sample_data = [BulkImport.get_dynamic_template(mongo, scheme_id)]
+            
+            # Get scheme name for filename
+            scheme = mongo.db.schemes.find_one({'_id': ObjectId(scheme_id)})
+            scheme_name = scheme['name'] if scheme else 'Unknown'
+            filename = f'import_template_{scheme_name.replace(" ", "_")}.xlsx'
+        else:
+            # Use default template
+            sample_data = [BulkImport.get_sample_template()]
+            filename = 'panchayat_records_import_template.xlsx'
         
         # Create DataFrame
         df = pd.DataFrame(sample_data)
@@ -154,7 +195,7 @@ def download_template():
         # Create response
         response = make_response(output.read())
         response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        response.headers['Content-Disposition'] = 'attachment; filename=panchayat_records_import_template.xlsx'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
         
         return response
         

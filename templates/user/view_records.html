@@ -158,8 +158,10 @@
     // Global variables for data management
     let allFields = new Set(); // Store all unique fields from custom_data
     let fieldSchemes = new Map(); // Map fields to their schemes
-    let allRecords = []; // Store all records for frontend filtering
-    let filteredRecords = []; // Store currently filtered records
+    let currentPage = 1;
+    let totalPages = 0; // Initialize to 0 to ensure pagination is hidden until data loads
+    let totalRecords = 0;
+    let perPage = 10;
 
     // Global function to format field values
     function formatFieldValue(value) {
@@ -219,11 +221,11 @@
     }
 
     // Global function to update pagination
-    function updatePagination(totalRecords) {
+    function updatePagination(totalRecords, currentPage, totalPages) {
         const paginationNav = document.getElementById('paginationNav');
         const paginationList = document.getElementById('paginationList');
 
-        if (totalRecords <= 10) {
+        if (totalPages <= 1) {
             paginationNav.style.display = 'none';
             return;
         }
@@ -231,13 +233,58 @@
         paginationNav.style.display = 'block';
         paginationList.innerHTML = '';
 
-        const totalPages = Math.ceil(totalRecords / 10);
-        for (let i = 1; i <= totalPages; i++) {
+        // Previous button
+        const prevLi = document.createElement('li');
+        const isPrevDisabled = currentPage === 1;
+        prevLi.className = `page-item ${isPrevDisabled ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${currentPage - 1})" ${isPrevDisabled ? 'tabindex="-1"' : ''}>Previous</a>`;
+        paginationList.appendChild(prevLi);
+
+        // Page numbers
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        if (startPage > 1) {
+            const firstLi = document.createElement('li');
+            firstLi.className = 'page-item';
+            firstLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(1)">1</a>`;
+            paginationList.appendChild(firstLi);
+            
+            if (startPage > 2) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                paginationList.appendChild(ellipsisLi);
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
             const li = document.createElement('li');
-            li.className = 'page-item';
+            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
             li.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${i})">${i}</a>`;
             paginationList.appendChild(li);
         }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const ellipsisLi = document.createElement('li');
+                ellipsisLi.className = 'page-item disabled';
+                ellipsisLi.innerHTML = `<span class="page-link">...</span>`;
+                paginationList.appendChild(ellipsisLi);
+            }
+            
+            const lastLi = document.createElement('li');
+            lastLi.className = 'page-item';
+            lastLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${totalPages})">${totalPages}</a>`;
+            paginationList.appendChild(lastLi);
+        }
+
+        // Next button
+        const nextLi = document.createElement('li');
+        const isNextDisabled = currentPage === totalPages;
+        nextLi.className = `page-item ${isNextDisabled ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="#" onclick="loadPage(${currentPage + 1})" ${isNextDisabled ? 'tabindex="-1"' : ''}>Next</a>`;
+        paginationList.appendChild(nextLi);
     }
 
     // Global function to generate table headers
@@ -322,13 +369,15 @@
     }
 
     // Global function to update records table
-    function updateRecordsTable(records) {
+    function updateRecordsTable(records, totalRecords, currentPage, totalPages) {
         // Clear existing data
         allFields.clear();
         fieldSchemes.clear();
 
         if (records.length === 0) {
             showNoRecordsMessage();
+            updateRecordCount(0);
+            updatePagination(0, 1, 1);
             return;
         }
 
@@ -352,68 +401,79 @@
         generateTableRows(records);
 
         // Update record count
-        updateRecordCount(records.length);
+        updateRecordCount(totalRecords);
 
         // Show pagination if needed
-        updatePagination(records.length);
+        updatePagination(totalRecords, currentPage, totalPages);
+    }
+
+    // Function to load a specific page
+    function loadPage(page) {
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        loadUserRecords();
+    }
+
+    // Function to load user records with pagination
+    function loadUserRecords() {
+        const searchTerm = document.getElementById('search').value;
+
+        console.log('Loading user records with:', {
+            search: searchTerm,
+            page: currentPage
+        });
+
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchTerm && searchTerm !== '') {
+            params.append('search', searchTerm);
+        }
+        params.append('page', currentPage);
+        params.append('per_page', perPage);
+
+        const url = `/user/api/user-records?${params.toString()}`;
+        console.log('Fetching from URL:', url);
+
+        // Show loading state
+        const tbody = document.getElementById('tableBody');
+        const thead = document.getElementById('tableHeader');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="100%" class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div><p class="mt-2">Loading records...</p></td></tr>';
+        }
+        if (thead) {
+            thead.innerHTML = '<tr><th class="text-center py-4">Loading...</th></tr>';
+        }
+
+        // Make API call to get user records
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                console.log('User records response:', data);
+                if (data.success) {
+                    totalRecords = data.total_records;
+                    totalPages = data.total_pages;
+                    currentPage = data.page;
+                    updateRecordsTable(data.records, totalRecords, currentPage, totalPages);
+                } else {
+                    console.error('Error loading records:', data.message);
+                    showNoRecordsMessage();
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching records:', error);
+                showNoRecordsMessage();
+            });
     }
 
     document.addEventListener('DOMContentLoaded', function () {
         // Load user's records
         loadUserRecords();
 
-        function loadUserRecords() {
-            fetch('/user/api/user-records')
-                .then(response => response.json())
-                .then(data => {
-                    console.log('User records response:', data);
-                    if (data.success) {
-                        allRecords = data.records;
-                        console.log('Loaded', allRecords.length, 'records');
-                        applyFrontendFilters();
-                    } else {
-                        console.error('Error loading records:', data.message);
-                        showNoRecordsMessage();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching records:', error);
-                    showNoRecordsMessage();
-                });
-        }
 
         function applyFrontendFilters() {
-            const searchTerm = document.getElementById('search').value.toLowerCase().trim();
-
-            // Start with all records
-            filteredRecords = [...allRecords];
-
-            // Apply search filter
-            if (searchTerm) {
-                filteredRecords = filteredRecords.filter(record => {
-                    // Search in custom_data fields
-                    if (record.custom_data) {
-                        for (const [key, value] of Object.entries(record.custom_data)) {
-                            if (value && value.toString().toLowerCase().includes(searchTerm)) {
-                                return true;
-                            }
-                        }
-                    }
-
-                    // Search in other record fields
-                    const searchableFields = ['department_name', 'scheme_name', 'created_by'];
-                    for (const field of searchableFields) {
-                        if (record[field] && record[field].toLowerCase().includes(searchTerm)) {
-                            return true;
-                        }
-                    }
-
-                    return false;
-                });
-            }
-
-            // Update table with filtered results
-            updateRecordsTable(filteredRecords);
+            // Reset to page 1 when applying filters
+            currentPage = 1;
+            loadUserRecords();
         }
 
         // Search functionality
@@ -466,24 +526,60 @@
         }
 
         function downloadCurrentData() {
-            if (filteredRecords.length === 0) {
+            if (totalRecords === 0) {
                 alert('No data to download');
                 return;
             }
 
-            const csvContent = createCSVContent(filteredRecords);
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
+            const searchTerm = document.getElementById('search').value;
 
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', 'my_records.csv');
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            // Build query parameters for download (get all records)
+            const params = new URLSearchParams();
+            if (searchTerm && searchTerm !== '') {
+                params.append('search', searchTerm);
             }
+            params.append('page', 1);
+            params.append('per_page', totalRecords); // Get all records
+
+            const url = `/user/api/user-records?${params.toString()}`;
+
+            // Show loading state
+            const downloadBtn = document.getElementById('downloadBtn');
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Downloading...';
+            downloadBtn.disabled = true;
+
+            // Make API call to get all user records
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.records.length > 0) {
+                        const csvContent = createCSVContent(data.records);
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const link = document.createElement('a');
+
+                        if (link.download !== undefined) {
+                            const url = URL.createObjectURL(blob);
+                            link.setAttribute('href', url);
+                            link.setAttribute('download', 'my_records.csv');
+                            link.style.visibility = 'hidden';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+                    } else {
+                        alert('No data to download');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error downloading data:', error);
+                    alert('Error downloading data. Please try again.');
+                })
+                .finally(() => {
+                    // Restore button state
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.disabled = false;
+                });
         }
 
         function createCSVContent(records) {
